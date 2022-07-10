@@ -26,7 +26,7 @@
 - Pranavathiyani G
 
 ## Acknowledgment
-- We would like to thank the **NIH National Library of Medicine/National Center for Biotechnology Information** for providing all the required computational resources during the codeathon.
+
 
 ## References
 
