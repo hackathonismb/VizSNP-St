@@ -10,13 +10,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime
 
-
-
 def get_protein_id(gene):
     """ get SWISSPROT ID"""
 
     URL = 'https://rest.uniprot.org/idmapping'
-
 
     params = {
     'from': 'Ensembl',
@@ -43,7 +40,6 @@ def get_protein_id(gene):
         time.sleep(1)
 
     return SwissProt_IDs
-
 
 def get_gene_info(gene, info):
 
@@ -75,7 +71,6 @@ def extract_vcf(vcff, info):
             dlist = line.split()
             data += "\"" + " ".join(dlist) + "\" ,"
     return data
-
 
 def muttaster_output(data):
     """ Run Mutation Taster and capture """
@@ -118,7 +113,6 @@ def vep_output(data, iCn3D_sift, iCn3D_polyphen):
                             iCn3D_polyphen[j.get("gene_id")][j.get("protein_start")][alt_aa] = {
                                      "polyphen_prediction": j.get("polyphen_prediction"), "polyphen_score": j["polyphen_score"]}
 
-
 def get_iCn3D_path(sift, polyphen, pid):
     """ generates the iCn3D path based on the variants"""
     date = datetime.now()
@@ -152,7 +146,6 @@ def variant_string(predict):
                         variants += str(pos) + ' ' + aa + ','
 
     return variants
-
 
 def cli():
 
