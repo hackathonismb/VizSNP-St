@@ -25,6 +25,11 @@
 
 
 ## Dependencies
+- Python version >= 3
+- Required modules:
+  * pysam
+- You can easily install this with conda (Ex: conda install -c bioconda pysam)
+- Most other standard core modules should already be available on your system
 
 
 ## Team 
