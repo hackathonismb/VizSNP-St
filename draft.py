@@ -20,7 +20,6 @@ def get_protein_id(gene):
     'to': 'UniProtKB-Swiss-Prot',
     'ids': gene
     }
-
     response = requests.post(f'{URL}/run', params)
     job_id = response.json()['jobId']
     job_status = requests.get(f'{URL}/status/{job_id}')
@@ -35,32 +34,30 @@ def get_protein_id(gene):
         results = job_results.json()
         for obj in results['results']:
             Swisprot_id=(obj["to"])
-            print(Swisprot_id)
+            #print(Swisprot_id)
             return Swisprot_id
         #break
 
     time.sleep(1)
 
 
-def get_gene_info(gene, info):
+def get_gene_info(Swiss_id, info):
+    """get gene chr, coordinate and protein id info from ensmble"""
+    # genes = gene.split(",")
+    server = "https://rest.ensembl.org"
+    ext = "/lookup/id/" + Swiss_id + "?expand=1"
+    r = requests.get(server + ext, headers={"Content-Type": "application/json"})
+    if not r.ok:
+      r.raise_for_status()
+      sys.exit()
 
-   """get gene chr, coordinate and protein id info from ensmble"""
-   genes = gene.split(",")
-   server = "https://rest.ensembl.org"
-   for i in genes:
-     ext = "/lookup/id/" + i + "?expand=1"
+    decoded = r.json()
+    info[Swiss_id]["id"] = decoded["Transcript"][0]["Translation"]["id"]
+    info[Swiss_id]["chr"] = decoded["Transcript"][0]["seq_region_name"]
+    info[Swiss_id]["start"] = decoded["Transcript"][0]["Translation"]["start"]
+    info[Swiss_id]["end"] = decoded["Transcript"][0]["Translation"]["end"]
+    print(info)
 
-     r = requests.get(server + ext, headers={"Content-Type": "application/json"})
-
-     if not r.ok:
-       r.raise_for_status()
-       sys.exit()
-
-     decoded = r.json()
-     info[i]["id"] = decoded["Transcript"][0]["Translation"]["id"]
-     info[i]["chr"] = decoded["Transcript"][0]["seq_region_name"]
-     info[i]["start"] = decoded["Transcript"][0]["Translation"]["start"]
-     info[i]["end"] = decoded["Transcript"][0]["Translation"]["end"]
 
 def extract_vcf(vcff, info):
     """ extract vcf file variants that match the given gene"""
@@ -121,7 +118,7 @@ def get_iCn3D_path(sift, polyphen,Swisprot_id):
 
     # print("\n")
     # for SwissProt_ID in pid:
-    print("UniProt Primary Accession:",)
+    print("UniProt Primary Accession:",Swisprot_id)
     iCn3Durl =  url + 'afid=' + Swisprot_id + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
     sift_str = variant_string(sift)
     polyphen_str = variant_string(polyphen)
@@ -162,17 +159,25 @@ def main(args):
     info = defaultdict(dict)
     iCn3D_sift = defaultdict(lambda: defaultdict(dict))  # dict to hold sift scores per variants
     iCn3D_polyphen = defaultdict(lambda: defaultdict(dict))  # dict to hold sift scores per variants
+    Ensembl_ids=args.g.split(",")
 
-    get_gene_info(args.g, info)
-    data = extract_vcf(args.v, info)
-    vep_output(data, iCn3D_sift, iCn3D_polyphen)
+    for gen in Ensembl_ids:
+        pid = get_protein_id(gen)
+        print("Swiss prot id is " + pid)
+        get_gene_info(gen, info)
+        #print(inf)
+        #print(pid)
+        # get_iCn3D_path(iCn3D_sift, iCn3D_polyphen,pid)
+        #
+        # get_gene_info(args.g, info)
+    #vep_output(data, iCn3D_sift, iCn3D_polyphen)
 
     # loop over the gene names
     #print(len(args.g.split(",")))
-    ids=args.g.split(",")
-    for gen in ids:
-        pid = get_protein_id(gen)
-        get_iCn3D_path(iCn3D_sift, iCn3D_polyphen,pid)
+    # ids=args.g.split(",")
+    # for gen in ids:
+    #     pid = get_protein_id(gen)
+    #     get_iCn3D_path(iCn3D_sift, iCn3D_polyphen,pid)
 
 if __name__ == '__main__':
     main(cli().parse_args())
