@@ -1,5 +1,5 @@
-<p>
-  <img src = "<img width="723" alt="VizSNP-St" src="https://user-images.githubusercontent.com/74168582/178574603-39a6c3d3-eec9-4e0e-883a-4961b77984fc.png">
+<p align = "center">
+  <img src = "https://user-images.githubusercontent.com/74168582/178574993-f3225e4e-63c5-4f67-8804-2aa4480ff24d.png" width="700" height="350">
 </p>
 
 
