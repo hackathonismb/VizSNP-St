@@ -1,10 +1,6 @@
 ## Visualizing NGS-generated SNPs in iCn3D
 
 
-![Proteins](https://user-images.githubusercontent.com/92297911/178541105-d86b8198-7c54-445c-a6cd-6183dede708c.png)
-
-
-
 ## Table of Contents
 - [Introduction](#Introduction)
 - [Methodology](#Methodology)
