@@ -36,6 +36,7 @@
 - Pranavathiyani G
 
 ## Acknowledgment
+- We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
 
 
 ## References
