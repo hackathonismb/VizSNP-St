@@ -20,7 +20,50 @@ Single nucleotide polymorphisms (SNPs) are characterized by a change in the sing
 
 
 
+## Materials and methods
+# Materials:
+- vcf file
+- Compressed vcf file (vcf.gz)
+- Indexed vcf file (vcf.gz.tbi)
+- Gene ID
+- 
+**NOTE**: All files indicated above should be in the same directory
+
 ## Methodology
+1. Input vcf.gz file and gene ID  Compressed and indexed VCF files
+2. Extract Swissprot ID of the gene ID
+- Connect to Uniprot database https://rest.uniprot.org/idmapping
+- Convert from Ensembl ID to UniProtKB-Swiss-Prot
+3. Extract gene information from Ensebl.org 
+- Gene ID,start position,stop positions and chromosome number
+4. Extract vcf file variants that match the given gene from the vcf.gz file 
+- Start,start position, stop position  and chromosome number
+5. Run VEP with the identified variants and capture sift and polyphen scores 
+- use rest.ensembl.org
+6. Generates the iCn3D link  based on the variants
+- Extract the variants that are deleterious from sift and polyphen ducts and returns a combined string per prediction
+
+# Test gene  ID 
+- ENSG00000093072
+
+# Test Files
+- sample.vcf 
+- t.vcf.gz  
+- t.vcf.gz.tbi  
+
+## Command Line Use:
+```
+python draft.py -v t.vcf.gz -g ENSG00000093072
+```
+
+## Results
+Link: https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=Q9NZK5&date=20220713&v=3.11.5&command=view
+
+ Screenshort: 
+![Screenshot 2022-07-13 at 18-00-57 Q9NZK5(AlphaFold) in iCn3D](https://user-images.githubusercontent.com/92297911/178769428-da5c1d34-fff0-4bc2-9d1b-e6937b75c5e0.png)
+
+
+
 
 
 ## Dependencies
