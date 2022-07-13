@@ -52,7 +52,7 @@
 
 
 ## References
--Collins, Francis S., Lisa D. Brooks, and Aravinda Chakravarti. "A DNA polymorphism discovery resource for research on human genetic variation." Genome research 8.12 (1998): 1229-1231.
+- Collins, Francis S., Lisa D. Brooks, and Aravinda Chakravarti. "A DNA polymorphism discovery resource for research on human genetic variation." Genome research 8.12 (1998): 1229-1231.
 
 - Gonzaga-Jauregui, Claudia, James R. Lupski, and Richard A. Gibbs. "Human genome sequencing in health and disease." Annual review of medicine 63 (2012): 35.
 
