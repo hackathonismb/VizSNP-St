@@ -12,7 +12,7 @@
 - [Introduction](#Introduction)
 - [Methodology](#Methodology)
 - [Results](#Results)
-- [Future prospects](#Future_prospects)
+- [Future prospects](#Future-prospects)
 - [Dependencies](#Dependencies)
 - [Team](#Team)
 - [Acknowledgment](#Acknowledgment)
