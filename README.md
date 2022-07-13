@@ -12,6 +12,7 @@
 - [Introduction](#Introduction)
 - [Methodology](#Methodology)
 - [Results](#Results)
+- [Future prospects] (#Future_prospects)
 - [Dependencies](#Dependencies)
 - [Team](#Team)
 - [Acknowledgment](#Acknowledgment)
@@ -27,16 +28,6 @@
 - **Project goals**: In this project, we would like to retrieve SNPs from genomics data and show them in iCn3D with 1D/2D/3D representations on interaction networks. We will design a pipeline that automatically extracts SNPs from the variant call format (VCF) file and generates an iCn3D link annotated with variant effect predictions (SIFT, PolyPhen). Additionally, we would like to improve the visualization of SNPs mapped to the structure. This would allow us to study the deleterious effects of SNPs in the structural context.
 
 
-
-## Materials and methods
-# Materials:
-- vcf file
-- Compressed vcf file (vcf.gz)
-- Indexed vcf file (vcf.gz.tbi)
-- Gene ID
-- 
-**NOTE**: All files indicated above should be in the same directory
-
 ## Methodology
 1. Input vcf.gz file and gene ID 
 2. Extract Swissprot ID of the gene ID
@@ -51,29 +42,13 @@
 6. Generates the iCn3D link  based on the variants
 - Extract the variants that are deleterious from sift and polyphen ducts and returns a combined string per prediction
 
-# Test gene  ID 
-- ENSG00000093072
-
-# Test Files
-- sample.vcf 
-- t.vcf.gz  
-- t.vcf.gz.tbi  
-
-## Command Line Use:
-```
-python draft.py -v t.vcf.gz -g ENSG00000093072
-```
 
 ## Results
-Link: https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=Q9NZK5&date=20220713&v=3.11.5&command=view
 
- Screenshort: 
-![Screenshot 2022-07-13 at 18-00-57 Q9NZK5(AlphaFold) in iCn3D](https://user-images.githubusercontent.com/92297911/178769428-da5c1d34-fff0-4bc2-9d1b-e6937b75c5e0.png)
 
-## Forthcoming features
-- Filter SNPS from coding regions
-- Highlighting the effect of each variant on the structure of the protein
-- 
+## Future prospects:
+
+
 ## Dependencies
 - Python version >= 3
 - Required modules:
