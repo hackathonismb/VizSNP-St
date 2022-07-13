@@ -29,18 +29,22 @@
 
 
 ## Methodology **(In progress)**
-1. Input vcf.gz file and gene ID 
-2. Extract Swissprot ID of the gene ID
-- Connect to Uniprot database https://rest.uniprot.org/idmapping
-- Convert from Ensembl ID to UniProtKB-Swiss-Prot
-3. Extract gene information from Ensebl.org 
-- Gene ID,start position,stop positions and chromosome number
-4. Extract vcf file variants that match the given gene from the vcf.gz file 
-- Start,start position, stop position  and chromosome number
-5. Run VEP with the identified variants and capture sift and polyphen scores 
-- use rest.ensembl.org
-6. Generates the iCn3D link  based on the variants
-- Extract the variants that are deleterious from sift and polyphen ducts and returns a combined string per prediction
+**1] Input Gene ID, annotation, and mapping**
+- The script takes as input an Ensembl gene ID and a VCF file.
+- Annotation: The following information is retrieved for the gene ID using the [Ensembl Rest API] (https://rest.ensembl.org):
+    * Corresponding Ensembl protein ID
+    * Chromosomal coordinates
+- Mapping: 
+    * The input gene ID is also mapped to a UniProt primary accession (UPrimAC) using the UniProtKB/Swiss-Prot database.
+    * This ID is later used to generate an iCn3D link based on the variants.
+**2] Extract VCF file variants**
+- Variants that match the input gene are extracted from the VCF file
+**3] Predict the functional effects of variants**
+- The deleterious effect of the identified variants is predicted using the Ensembl Variant Effect Predictor (VEP) Rest API.
+- Currently, we utilize two pathogenicity prediction scores: SIFT and PolyPhen.
+**4] Generate the iCn3D path based on variants of interest**
+- Finally, an `iCn3D link` is generated using the UPrimAC retrieved earlier (see step 1), including variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
+- Automatically open the link in your favorite web browser.
 
 
 ## Results
