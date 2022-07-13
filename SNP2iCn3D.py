@@ -34,7 +34,6 @@ def get_protein_id(gene):
                 SwissProt_ID = obj["to"]
             break
         time.sleep(1)
-    print("SwissProt_ID: ", SwissProt_ID)
     return SwissProt_ID
 
 def get_gene_info(gene, info):
@@ -81,8 +80,6 @@ def vep_output(data, iCn3D_sift, iCn3D_polyphen):
         sys.exit()
 
     decoded = r.json()
-    #print("decoded: ")
-    #print(decoded)
     for i in decoded:
         for key in i:
              if isinstance(i[key], list):
@@ -98,9 +95,7 @@ def get_iCn3D_path(sift, polyphen, pid):
     """ generates the iCn3D path based on the variants"""
     date = datetime.now()
     url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
-    # https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=O60885&date=20220713&v=3.12.7&command=view annotations;set annotation cdd; 
-    # add track | chainid O60885_A | title SIFT_predict | text 517 P;set view detailed view;
-    # scap interaction O60885_A_517_P
+
     print("\nUniProt Primary Accession:", pid, "\n")
     iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command=view annotations; set annotation cdd; set view detailed view;'
     sift_str = variant_string(sift)
