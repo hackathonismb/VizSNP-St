@@ -28,7 +28,7 @@
 - **Project goals**: In this project, we would like to retrieve SNPs from genomics data and show them in iCn3D with 1D/2D/3D representations on interaction networks. We will design a pipeline that automatically extracts SNPs from the variant call format (VCF) file and generates an iCn3D link annotated with variant effect predictions (SIFT, PolyPhen). Additionally, we would like to improve the visualization of SNPs mapped to the structure. This would allow us to study the deleterious effects of SNPs in the structural context.
 
 
-## Methodology
+## Methodology **(In progress)**
 1. Input vcf.gz file and gene ID 
 2. Extract Swissprot ID of the gene ID
 - Connect to Uniprot database https://rest.uniprot.org/idmapping
