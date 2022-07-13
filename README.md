@@ -67,14 +67,13 @@
 ## Team 
 - Bonface Onyango
 - Brenda Kiage
-- Christian Cruz
-- Manoj M Wagle
+- [Manoj M Wagle](https://github.com/manojmw)
 - Michael Sierk
 - Pranavathiyani G
 
 ## Acknowledgment
 - We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
-- The original version of this script was written by Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the **National Cancer Institute**.
+- The original draft of this script was written by Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the **National Cancer Institute**.
 
 
 ## References
