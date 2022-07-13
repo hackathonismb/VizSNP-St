@@ -30,7 +30,7 @@ Single nucleotide polymorphisms (SNPs) are characterized by a change in the sing
 **NOTE**: All files indicated above should be in the same directory
 
 ## Methodology
-1. Input vcf.gz file and gene ID  Compressed and indexed VCF files
+1. Input vcf.gz file and gene ID 
 2. Extract Swissprot ID of the gene ID
 - Connect to Uniprot database https://rest.uniprot.org/idmapping
 - Convert from Ensembl ID to UniProtKB-Swiss-Prot
