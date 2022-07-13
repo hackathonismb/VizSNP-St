@@ -6,9 +6,8 @@ from pysam import VariantFile
 import requests
 import json
 import time
-import urllib.parse
-import urllib.request
 from datetime import datetime
+import webbrowser
 
 def get_protein_id(gene):
     """ get SWISSPROT ID"""
@@ -26,40 +25,36 @@ def get_protein_id(gene):
     job_status = requests.get(f'{URL}/status/{job_id}')
     d = job_status.json()
 
-    # List to store the mapped ID
-    SwissProt_IDs = []
-
     # Make three attemps to get the results
     for i in range(3):
         if d.get("job_status") == 'FINISHED' or d.get('results'):
             job_results = requests.get(f'{URL}/results/{job_id}')
             results = job_results.json()
             for obj in results['results']:
-                SwissProt_IDs.append(obj["to"])
+                SwissProt_ID = obj["to"]
             break
         time.sleep(1)
 
-    return SwissProt_IDs
+    return SwissProt_ID
 
 def get_gene_info(gene, info):
 
-   """get gene chr, coordinate and protein id info from ensmble"""
-   genes = gene.split(",")
-   server = "https://rest.ensembl.org"
-   for i in genes:
-     ext = "/lookup/id/" + i + "?expand=1"
+    """get gene chr, coordinate and protein id info from ensmble"""
 
-     r = requests.get(server + ext, headers={"Content-Type": "application/json"})
+    server = "https://rest.ensembl.org"
+    ext = "/lookup/id/" + gene + "?expand=1"
 
-     if not r.ok:
-       r.raise_for_status()
-       sys.exit()
+    r = requests.get(server + ext, headers={"Content-Type": "application/json"})
 
-     decoded = r.json()
-     info[i]["id"] = decoded["Transcript"][0]["Translation"]["id"]
-     info[i]["chr"] = decoded["Transcript"][0]["seq_region_name"]
-     info[i]["start"] = decoded["Transcript"][0]["Translation"]["start"]
-     info[i]["end"] = decoded["Transcript"][0]["Translation"]["end"]
+    if not r.ok:
+        r.raise_for_status()
+        sys.exit()
+
+    decoded = r.json()
+    info[gene]["id"] = decoded["Transcript"][0]["Translation"]["id"]
+    info[gene]["chr"] = decoded["Transcript"][0]["seq_region_name"]
+    info[gene]["start"] = decoded["Transcript"][0]["Translation"]["start"]
+    info[gene]["end"] = decoded["Transcript"][0]["Translation"]["end"]
 
 def extract_vcf(vcff, info):
     """ extract vcf file variants that match the given gene"""
@@ -71,22 +66,6 @@ def extract_vcf(vcff, info):
             dlist = line.split()
             data += "\"" + " ".join(dlist) + "\" ,"
     return data
-
-def muttaster_output(data):
-    """ Run Mutation Taster and capture """
-    url = 'https://www.genecascade.org/MT2021/MT_API102.cgi?variants='
-
-    variants = data.replace("\"","").split(",")
-    for i in variants:
-        var=i.split(" ")
-        if(len(var)>4):
-            print(var[0],var[1],var[3],var[4])
-            variant = str(var[0]) + ":" + str(var[1]) + var[3] + '%3E' + var[4]
-            snpurl = url + variant
-            req = urllib.request.Request(snpurl)
-            with urllib.request.urlopen(req) as f:
-                response = f.read()
-                print(response.decode('utf-8'))
 
 def vep_output(data, iCn3D_sift, iCn3D_polyphen):
     """ Run VEP with the identified variants and capture sift and polyphen scores"""
@@ -103,7 +82,7 @@ def vep_output(data, iCn3D_sift, iCn3D_polyphen):
 
     decoded = r.json()
     for i in decoded:
-        for key,val in i.items():
+        for key in i:
              if isinstance(i[key], list):
                  for j in i[key]:
                      if "sift_prediction" in j or "polyphen_prediction" in j:
@@ -118,32 +97,38 @@ def get_iCn3D_path(sift, polyphen, pid):
     date = datetime.now()
     url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
 
-    print("\n")
-    for SwissProt_ID in pid:
-        print("UniProt Primary Accession:", SwissProt_ID)
-        iCn3Durl =  url + 'afid=' + SwissProt_ID + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
-        sift_str = variant_string(sift)
-        polyphen_str = variant_string(polyphen)
-        if(sift_str):
-            iCn3Durl += 'add track | chainid ' + SwissProt_ID + '_A | title SIFT_predict | text ' + sift_str
-        if(polyphen_str):
-            iCn3Durl += '; add track | chainid ' + SwissProt_ID + '_A | title PolyPhen_predict | text ' + polyphen_str
+    print("\nUniProt Primary Accession:", pid, "\n")
+    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
+    sift_str = variant_string(sift)
+    polyphen_str = variant_string(polyphen)
+    if(sift_str):
+        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str
+    if(polyphen_str):
+        iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
 
-        print("Here is your iCn3D link:")
-        print(iCn3Durl, "\n")
+    print("Here is your iCn3D link:")
+    print(iCn3Durl, "\n")
+    webbrowser.open(iCn3Durl)
 
 def variant_string(predict):
     """ extract the variants that are deleterious from sift and polyphen dicts and returns a combined string per prediction"""
+
     variants = ""
     for gene in predict.keys():
-        for pos in predict[gene].keys():
-            for aa in predict[gene][pos].keys():
+        for pos in predict[gene]:
+            for aa in predict[gene][pos]:
                 if 'sift_prediction' in predict[gene][pos][aa]:
                     if predict[gene][pos][aa]['sift_prediction'] == 'deleterious':
-                        variants += str(pos) + ' ' + aa + ','
+                        if variants == '':
+                            variants += str(pos) + ' ' + aa
+                        else:
+                            variants += str(pos) + ' ' + aa + ','
                 elif 'polyphen_prediction' in predict[gene][pos][aa]:
-                    if predict[gene][pos][aa]['polyphen_prediction'] == 'benign':
-                        variants += str(pos) + ' ' + aa + ','
+                    if predict[gene][pos][aa]['polyphen_prediction'] == 'deleterious':
+                        if variants == '':
+                            variants += str(pos) + ' ' + aa
+                        else:
+                            variants += str(pos) + ' ' + aa + ','
 
     return variants
 
@@ -152,9 +137,8 @@ def cli():
     desc = ("PredVEP2iCn3D.py: Run VEP on certain gene variants extracted from a VCF file \
              and generates an iCn3D link")
     parser = ArgumentParser(description=desc)
-    parser.add_argument('-g', metavar='GENE', help="Ensemble Gene or Transcript IDs seperated by comma")
+    parser.add_argument('-g', metavar='GENE', help="Ensemble Gene ID of interest")
     parser.add_argument('-v', metavar='VCF', help="VCF file to extract the variants; gziped and tabix")
-    parser.add_argument('-o', metavar='OUTPUT', help="Output file with iCn3D link")
     return parser
 
 def main(args):
