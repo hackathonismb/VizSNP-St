@@ -65,11 +65,11 @@
 
 
 ## Team 
-- Bonface Onyango
+- [Bonface Onyango](https://github.com/bonfaceonyango)
 - Brenda Kiage
 - [Manoj M Wagle](https://github.com/manojmw)
-- Michael Sierk
-- Pranavathiyani G
+- [Michael Sierk](https://github.com/msierk)
+- [Pranavathiyani G](https://github.com/pranavathiyani)
 
 ## Acknowledgment
 - We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
