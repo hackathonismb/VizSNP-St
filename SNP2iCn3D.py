@@ -92,24 +92,6 @@ def vep_output(data, iCn3D_sift, iCn3D_polyphen):
                             iCn3D_polyphen[j.get("gene_id")][j.get("protein_start")][alt_aa] = {
                                      "polyphen_prediction": j.get("polyphen_prediction"), "polyphen_score": j["polyphen_score"]}
 
-def get_iCn3D_path(sift, polyphen, pid):
-    """ generates the iCn3D path based on the variants"""
-    date = datetime.now()
-    url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
-
-    print("\nUniProt Primary Accession:", pid, "\n")
-    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
-    sift_str = variant_string(sift)
-    polyphen_str = variant_string(polyphen)
-    if(sift_str):
-        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str
-    if(polyphen_str):
-        iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
-
-    print("Here is your iCn3D link:")
-    print(iCn3Durl, "\n")
-    webbrowser.open(iCn3Durl)
-
 def variant_string(predict):
     """ extract the variants that are deleterious from sift and polyphen dicts and returns a combined string per prediction"""
 
@@ -129,8 +111,27 @@ def variant_string(predict):
                             variants += str(pos) + ' ' + aa
                         else:
                             variants += str(pos) + ' ' + aa + ','
-
+    
     return variants
+
+
+def get_iCn3D_path(sift, polyphen, pid):
+    """ generates the iCn3D path based on the variants"""
+    date = datetime.now()
+    url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
+
+    print("\nUniProt Primary Accession:", pid, "\n")
+    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
+    sift_str = variant_string(sift)
+    polyphen_str = variant_string(polyphen)
+    if(sift_str):
+        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str
+    if(polyphen_str):
+        iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
+
+    print("Here is your iCn3D link:")
+    print(iCn3Durl, "\n")
+    webbrowser.open(iCn3Durl)
 
 def cli():
 
