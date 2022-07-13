@@ -62,10 +62,10 @@ Link: https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=Q9NZK5&date=20
  Screenshort: 
 ![Screenshot 2022-07-13 at 18-00-57 Q9NZK5(AlphaFold) in iCn3D](https://user-images.githubusercontent.com/92297911/178769428-da5c1d34-fff0-4bc2-9d1b-e6937b75c5e0.png)
 
-
-
-
-
+## Forthcoming features
+- Filter SNPS from coding regions
+- Highlighting the effect of each variant on the structure of the protein
+- 
 ## Dependencies
 
 
