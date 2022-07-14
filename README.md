@@ -49,6 +49,7 @@
 - Finally, an `iCn3D link` is generated using the UPrimAC retrieved earlier (see step 1), including variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
 - Automatically open the link in your favorite web browser.
 
+</br>
 <img width="1391" alt="Flowchart_VizSNP-St" src="https://user-images.githubusercontent.com/74168582/178969212-40c68667-9b2c-46cc-bfe1-2c7a6f38de27.png">
 
 
