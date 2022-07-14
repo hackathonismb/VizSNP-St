@@ -69,7 +69,6 @@
 
 ## Team 
 - [Bonface Onyango](https://github.com/bonfaceonyango)
-- Brenda Kiage
 - [Manoj M Wagle](https://github.com/manojmw)
 - [Michael Sierk](https://github.com/msierk)
 - [Pranavathiyani G](https://github.com/pranavathiyani)
