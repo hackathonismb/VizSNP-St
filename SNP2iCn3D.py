@@ -34,7 +34,6 @@ def get_protein_id(gene):
                 SwissProt_ID = obj["to"]
             break
         time.sleep(1)
-
     return SwissProt_ID
 
 def get_gene_info(gene, info):

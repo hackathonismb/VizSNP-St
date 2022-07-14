@@ -66,16 +66,10 @@
 - You can easily install this with conda (Ex: conda install -c bioconda pysam)
 - Most other standard core modules should already be available on your system
 
-
-## Team 
-- [Bonface Onyango](https://github.com/bonfaceonyango)
-- [Manoj M Wagle](https://github.com/manojmw)
-- [Michael Sierk](https://github.com/msierk)
-- [Pranavathiyani G](https://github.com/pranavathiyani)
-
-## Acknowledgment
-- We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
-- The original draft of this script was written by Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the **National Cancer Institute**.
+## Future Modifications
+- Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
+- Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
+- Deal with multiple SNPs, either from a single gene or multiple genes.
 
 
 ## References
