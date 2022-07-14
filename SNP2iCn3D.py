@@ -121,13 +121,19 @@ def get_iCn3D_path(sift, polyphen, pid):
     url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
 
     print("\nUniProt Primary Accession:", pid, "\n")
-    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; '
+    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.11.5&command=view annotations; set annotation cdd; set view detailed view; '
     sift_str = variant_string(sift)
     polyphen_str = variant_string(polyphen)
     if(sift_str):
-        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str
+        scap_str = 'scap interaction ' + pid + '_A_' + sift_str.replace(" ", "_")
+        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str + ";" + scap_str
     if(polyphen_str):
-        iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
+        # only need to add scap_str once, need to check if sift_str exists already
+        if not scap_str:
+            iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
+        else:
+            scap_str = 'scap interaction ' + pid + '_A_' + sift_str.replace(" ", "_")
+            iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str + ";" + scap_str
 
     print("Here is your iCn3D link:")
     print(iCn3Durl, "\n")
