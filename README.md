@@ -55,6 +55,10 @@
 
 ## Results
 
+## Future prospects:
+- Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
+- Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
+- Deal with multiple SNPs, either from a single gene or multiple genes.
 
 ## Dependencies
 - Python version >= 3
@@ -72,11 +76,6 @@
 ## Acknowledgment
 - We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
 - The original draft of this script was written by Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the **National Cancer Institute**.
-
-## Future prospects:
-- Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
-- Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
-- Deal with multiple SNPs, either from a single gene or multiple genes.
 
 
 ## References
