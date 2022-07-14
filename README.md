@@ -75,7 +75,7 @@
 
 ## Acknowledgment
 - We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
-- We would also like to thank Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the National Cancer Institute for drafting the original version of the script.
+- We would also like to thank Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the National Cancer Institute for drafting the original version of the script. Subsequent improvements and new features were added by Manoj M Wagle and Michael Sierk.
 
 
 ## References
