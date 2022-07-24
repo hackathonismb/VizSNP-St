@@ -80,8 +80,9 @@
  </p>
 
 </br>
+
 <p align = "center">
-  ![VizSNPSt](https://user-images.githubusercontent.com/74168582/180653540-2b6f5db4-a9d4-4bc2-b32f-dc5830470169.gif)
+  ![VizSNPSt](https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif)
  </p>
 
 ## Future prospects:
