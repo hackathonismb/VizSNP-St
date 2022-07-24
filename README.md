@@ -75,8 +75,10 @@
 - The structure with the SNPs will be opened automatically in iCn3D.
 - The figures and animation below shows the output in iCn3D
 
+</br>
+
 <p align = "center">
-  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png">
+  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png" width="900" height="650">
  </p>
 
 </br>
