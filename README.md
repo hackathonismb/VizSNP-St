@@ -73,6 +73,7 @@
   ```
 
 - The structure with the SNPs will be opened automatically in iCn3D.
+- The figure below shows the output in iCn3D
 
 ## Future prospects:
 - Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
