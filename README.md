@@ -78,13 +78,13 @@
 </br>
 
 <p align = "center">
-  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png" width="900" height="650">
+  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png">
  </p>
 
 </br>
 
 <p align="center">
-  <img src="https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif">
+  <img src="https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif" width="800" height="450">
 </p>
 
 ## Future prospects:
