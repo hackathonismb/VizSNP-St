@@ -36,7 +36,8 @@
     * Chromosomal coordinates
 - Mapping: 
     * The input gene ID is also mapped to a UniProt primary accession (UPrimAC) using the UniProtKB/Swiss-Prot database.
-    * This ID is later used to generate an iCn3D link based on the variants.
+    * The UPrimAC is used to retrieve the protein structure.
+    * If a PDB structure is available, then structure with the best resolution is chosen. When a PDB structure is unavailable, an Alphafold structure is retrieved instead.
 
 **2] Extract VCF file variants**
 - Variants that match the input gene are extracted from the VCF file
@@ -46,7 +47,7 @@
 - Currently, we utilize two pathogenicity prediction scores: SIFT and PolyPhen.
 
 **4] Generate the iCn3D path based on variants of interest**
-- Finally, an `iCn3D link` is generated using the UPrimAC retrieved earlier (see step 1), including variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
+- Finally, an `iCn3D link` is generated using the protein structure retrieved earlier (see step 1) with the added variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
 - Automatically open the link in your favorite web browser.
 
 </br>
