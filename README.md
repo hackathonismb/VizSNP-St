@@ -73,10 +73,15 @@
   ```
 
 - The structure with the SNPs will be opened automatically in iCn3D.
-- The animation and figures below shows the output in iCn3D
+- The figures and animation below shows the output in iCn3D
 
-![VizSNPSt](https://user-images.githubusercontent.com/74168582/180653422-be94273a-92b1-434c-85f4-04316e0a6492.gif)
+<p align = "center">
+  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png">
+  
+  <br>
 
+  ![VizSNPSt](https://user-images.githubusercontent.com/74168582/180653540-2b6f5db4-a9d4-4bc2-b32f-dc5830470169.gif)
+ </p>
 
 ## Future prospects:
 - Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
