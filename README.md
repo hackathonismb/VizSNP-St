@@ -77,9 +77,10 @@
 
 <p align = "center">
   <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png">
-  
-  <br>
+ </p>
 
+</br>
+<p align = "center">
   ![VizSNPSt](https://user-images.githubusercontent.com/74168582/180653540-2b6f5db4-a9d4-4bc2-b32f-dc5830470169.gif)
  </p>
 
