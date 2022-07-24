@@ -81,9 +81,9 @@
 
 </br>
 
-<p align = "center">
-  ![VizSNPSt](https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif)
- </p>
+<p align="center">
+  <img src="(https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif)" alt="animated" />
+</p>
 
 ## Future prospects:
 - Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
