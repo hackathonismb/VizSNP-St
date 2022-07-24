@@ -58,11 +58,11 @@
 
 - For running the pipeline, you need a VCF file (gzipped and tabix) from which the variants are to be extracted. 
 - Here we tested our pipeline on a sample VCF file (available in the `example` directory)
-- Usage:
-```
-python3 SNP2iCn3D.py -g ENSG00000141867 -v t3.vcf.gz 
-```
+  ```
+  python3 SNP2iCn3D.py -g ENSG00000141867 -v t3.vcf.gz 
+  ```
 <br>
+
 - The output should look something like this:
 ```
 UniProt Primary Accession: O60885
@@ -71,6 +71,7 @@ Here is your iCn3D link:
 https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=O60885&date=20220713&v=3.12.7&command=view annotations; set annotation cdd; set view detailed view;add track | chainid O60885_A | title SIFT_predict | text 517 P;scap interaction O60885_A_517_P
 ```
 <br>
+
 - The structure with the SNPs will be opened automatically in iCn3D.
 
 ## Future prospects:
