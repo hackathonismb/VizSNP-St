@@ -60,7 +60,7 @@
 - Here we tested our pipeline on a sample VCF file (available in the `example` directory)
 
   ```
-  python3 SNP2iCn3D.py -g ENSG00000141867 -v t3.vcf.gz 
+  python3 SNP2iCn3D.py -g ENSG00000141867 -v example.vcf.gz 
   ```
 
 - The output should look something like this:
