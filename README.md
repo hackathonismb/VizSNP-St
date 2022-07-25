@@ -42,6 +42,7 @@
 - Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
 - Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
 - Deal with multiple SNPs, either from a single gene or multiple genes.
+- Incorporate color ramp highlighting of residues based on SIFT & Polyphen scores
 
 ## Team 
 - Bonface Onyango
