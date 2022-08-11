@@ -8,42 +8,60 @@ shows the variants in the sequence track and highlights the first mutant in the 
 Original script: Shashi Ratnayake, NCI
 Modifications by: Michael Sierk, NCI, Manoj Wagle, University of Grenoble Alpes
 
+TODO (8/8/22):
+    - html output
+        - get variant string
+    - .tsv output for importing into a spreadsheet
+    - retrieve PDB if available
+    - load SIFT/PolyPhen scores into iCn3D
+        - requires BED file, has to be loaded manually into iCn3D?
+
 '''
 from argparse import ArgumentParser
 from collections import defaultdict
 import sys
+import re
 from pysam import VariantFile
 import requests
 import json
 import time
 from datetime import datetime
 import webbrowser
-from urllib.parse import urlparse, urlencode
+from urllib.parse import quote, urlencode
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
 
 def get_protein_id(gene):
-    """ get SWISSPROT ID"""
+    """ get SWISSPROT ID
+    https://www.biostars.org/p/9529129/#9529154
+    """
+    print("getting SP ID for", gene)
 
     URL = 'https://rest.uniprot.org/idmapping'
 
     params = {
     'from': 'Ensembl',
-    'to': 'UniProtKB-Swiss-Prot',
+    'to': 'UniProtKB',
     'ids': gene
     }
 
     response = requests.post(f'{URL}/run', params)
+    print(response)
+
     job_id = response.json()['jobId']
+    print('job id:', job_id)
     job_status = requests.get(f'{URL}/status/{job_id}')
     d = job_status.json()
 
     SwissProt_ID = None
     # Make three attemps to get the results
     for i in range(3):
-        if d.get("job_status") == 'FINISHED' or d.get('results'):
+        print(d.get('jobStatus'))
+        if d.get("jobStatus") == 'FINISHED' or d.get('results'):
+            print("sp job finished")
             job_results = requests.get(f'{URL}/results/{job_id}')
             results = job_results.json()
+            print(json.dumps(results, indent=2))
             for obj in results['results']:
                 SwissProt_ID = obj["to"]
             break
@@ -99,30 +117,34 @@ class EnsemblRestClient(object):
         return data
 
     def get_gene_ids(self, coords):
-
+        ''' get the Ensembl gene ID for each coordinate location from the VCF file'''
         genes_list = defaultdict(dict)
 
         for c in coords:
             loc = c[0]+":"+c[1]
-            #print("loc: ", loc)
             #ext = "/overlap/region/human/7:140424943-140624564?feature=gene"
             ext = "/overlap/region/human/" + c[0] + ":" + c[1] + "-" + c[1]
             gene = self.perform_rest_action(
                 endpoint=ext, 
                 params={'feature': 'gene'}
             )
-            #print(type(gene))
             if gene:
+                #print(gene)
                 for g in gene:
-                    print("retrieved gene id: ", g["gene_id"])
-                    # get the SwissProt ID here (genes_list[loc]["ens_id"] and genes_list[loc]["sp_id"])
+                    print("retrieved gene id: ", '!', g["gene_id"], '!',sep='')
+                    # get the Uniprot ID here 
                     genes_list[loc]["ens_id"] = g["gene_id"]
                     genes_list[loc]["sp_id"] = get_protein_id(g["gene_id"])
+                    print(genes_list[loc]["sp_id"])
+            else:
+                print("no gene found for " + loc)
         return genes_list
 
     def get_gene_info(self, genes, genes_info):
 
-        """get gene chr, coordinate and protein id info from Ensembl"""
+        """get gene chr, coordinate and protein id info from Ensembl
+            - only used if pulling specific coords for a gene from VCF file
+        """
         for g in genes:
             print("g: ", g)
             ext = "/lookup/id/" + g
@@ -136,6 +158,9 @@ class EnsemblRestClient(object):
             genes_info[g]["end"] = g_info["Transcript"][0]["Translation"]["end"]
     
     def get_vep(self, variants):
+        '''attempt to get VEP output via EnsemblRestClient class
+         - problem with submiting variants string'''
+
         ext = "/vep/homo_sapiens/region"
         hdrs = {}
         hdrs['Accept'] = "application/json"
@@ -154,21 +179,17 @@ class EnsemblRestClient(object):
 
 def extract_vcf(vcf, gene_ids):
     """ extract vcf file variants that match the given gene"""
-    #data = [] #defaultdict(dict)
     variants = ""
     for l in gene_ids.keys():
-        # if gene_ids[l]['ens_id'] == gene:
         for c in vcf:
             loc = c[0]+":"+c[1]
             if l == loc:
                 variants += "\"" + " ".join(c[0:5]) + " . . ." + "\" ," 
                 #print(variants) # "19 15256965 . T G . . ." ,
-        #data = variants
-    #print(variants)
     return variants[:-1]
 
-def vep_output(variants, iCn3D_sift, iCn3D_polyphen):
-    from difflib import SequenceMatcher
+def vep_output(variants, sift, polyphen):
+    #from difflib import SequenceMatcher
     """ Run VEP with the identified variants and capture sift and polyphen scores"""
     #client = EnsemblRestClient()
     print("\nRetrieving VEP results...\n")
@@ -200,69 +221,145 @@ def vep_output(variants, iCn3D_sift, iCn3D_polyphen):
              if isinstance(i[key], list):
                  for j in i[key]:
                      if "sift_prediction" in j or "polyphen_prediction" in j:
+                            aa = j.get("amino_acids").split("/")[0]
+                            aanum = str(j.get("protein_start"))
                             alt_aa = j.get("amino_acids").split("/")[1]
-                            iCn3D_sift[j.get("gene_id")][j.get("protein_start")][alt_aa] = {
+                            mutaa = aa + aanum + alt_aa
+                            sift[j.get("gene_id")][mutaa] = {
                                      "sift_prediction": j.get("sift_prediction"), "sift_score": j["sift_score"]}
-                            iCn3D_polyphen[j.get("gene_id")][j.get("protein_start")][alt_aa] = {
+                            # iCn3D_polyphen[j.get("gene_id")][j.get("protein_start")][alt_aa]
+                            polyphen[j.get("gene_id")][mutaa] = {
                                      "polyphen_prediction": j.get("polyphen_prediction"), "polyphen_score": j["polyphen_score"]}
-    #print("iCn3D_sift: ", iCn3D_sift)
-    #print("iCn3D_polyphen: ", iCn3D_polyphen)
 
 def get_iCn3D_path(sift, polyphen, gene, pid):
     """ generates the iCn3D path based on the variants"""
     date = datetime.now()
-    url='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
-
+    url_path='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
+    #url_query=''
+    #url_command=''
     print("UniProt Primary Accession:", pid, "\n")
-    iCn3Durl =  url + 'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command=view annotations; set annotation cdd; set view detailed view;'
+    url_query =  'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
+    url_command='view annotations; set annotation cdd; set view detailed view;'
 
     sift_str = variant_string(sift[gene]) # need to modify to produce BED file to show SIFT/Polyphen score
     polyphen_str = variant_string(polyphen[gene])
 
     if(sift_str):
         scap_str = 'scap interaction ' + pid + '_A_' + sift_str.replace(" ", "_")
-        iCn3Durl += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str + ";" + scap_str
+        url_command += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str + ";" + scap_str
     
     if(polyphen_str):
         # only need to add scap_str once, need to check if scap_str exists already
         if scap_str:
-            iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
+            url_command += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
         else:
             scap_str = 'scap interaction ' + pid + '_A_' + polyphen_str.replace(" ", "_")
-            iCn3Durl += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str + ";" + scap_str
+            url_command += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str + ";" + scap_str
     
+    url_command = quote(url_command) # encode the spaces
+    iCn3Durl = url_path + url_query + url_command
+
     if (sift_str) or (polyphen_str):
         print("Here is your iCn3D link:")
         print(iCn3Durl, "\n")
+        #iCn3Durl = quote(iCn3Durl, safe=)
     else:
-        print ("No deleterious mutations found!")
-
-
+        iCn3Durl = "No deleterious mutations found for " + pid
+    return(iCn3Durl) #, sift_str, polyphen_str)
     #webbrowser.open(iCn3Durl)
 
 def variant_string(predict):
-    """ extract the variants that are deleterious from sift and polyphen dicts and returns a combined string per prediction"""
-    # this is putting all the variants into one string, regardless of gene
+    """ extract the variants that are deleterious from sift and polyphen dicts and returns 
+    a combined string per prediction for the iCn3D url command
+    - this includes all the variants from one gene 
+    """
     variants = ""
     #for gene in predict.keys():
-    for pos in predict:
-        for aa in predict[pos]:
-            if 'sift_prediction' in predict[pos][aa]:
-                print('sift pred:', predict[pos][aa]['sift_prediction'])
-                if predict[pos][aa]['sift_prediction'] == 'deleterious':
-                    if variants == '':
-                        variants += str(pos) + ' ' + aa
-                    else:
-                        variants += ',' + str(pos) + ' ' + aa
-            elif 'polyphen_prediction' in predict[pos][aa]:
-                print('polyp pred:', predict[pos][aa]['polyphen_prediction'])
-                if predict[pos][aa]['polyphen_prediction'] == 'probably_damaging':
-                    if variants == '':
-                        variants += str(pos) + ' ' + aa 
-                    else:
-                        variants += ',' + str(pos) + ' ' + aa
+    for mutaa in predict:
+        s = re.split(r'(\d+)', mutaa) # need the number and new aa
+        if 'sift_prediction' in predict[mutaa]:
+            #print('sift pred:', predict[mutaa]['sift_prediction'])
+            if predict[mutaa]['sift_prediction'] == 'deleterious':
+                if variants == '':
+                    variants += s[1] + ' ' + s[2]
+                else:
+                    variants += ',' + s[1] + ' ' + s[2]
+        elif 'polyphen_prediction' in predict[mutaa]:
+            #print('polyp pred:', predict[mutaa]['polyphen_prediction'])
+            if predict[mutaa]['polyphen_prediction'] == 'probably_damaging':
+                if variants == '':
+                    variants += s[1] + ' ' + s[2]
+                else:
+                    variants += ',' + s[1] + ' ' + s[2]
 
     return variants
+
+def variant_string2(predict):
+    """ returns a variant string for html output
+        - puts all variants for one gene into the string
+    """
+    variants = ''
+    for mutaa in predict:
+        if 'sift_prediction' in predict[mutaa]:
+            #print('sift pred:', predict[pos][aa]['sift_prediction'])
+            str_add = mutaa + ' ' + predict[mutaa]['sift_prediction'] + \
+                        ' ' + str(predict[mutaa]['sift_score'])
+            if variants == '':
+                variants += str_add
+            else:
+                variants += "\n" + str_add
+        elif 'polyphen_prediction' in predict[mutaa]:
+            #print('polyp pred:', predict[pos][aa]['polyphen_prediction'])
+            str_add = mutaa + ' ' + predict[mutaa]['polyphen_prediction'] + \
+                    ' ' + str(predict[mutaa]['polyphen_score'])
+            if variants == '':
+                variants += str_add
+            else:
+                variants += "\n" + str_add
+            
+    return variants
+
+def print_html(vcf_file, url_list, sift, polyphen, gene_to_pid):
+
+    # to open/create a new html file in the write mode
+    f = open('iCn3D_links.html', 'w')
+  
+    # html code 
+    html = """<html>
+    <head>
+    <title>iCn3D links</title>
+    </head>
+    <body>
+    <h2>Click on a link to open the variant in iCn3D</h2>
+    <table border='1'>"""
+    html += "Input file: " + vcf_file
+
+    # output table
+    html += "<tr><th>Gene</th><th>UniprotID</th><th>SIFT</th><th>PolyPhen</th><th>iCn3D link</th></tr>"
+    for gene in gene_to_pid.keys():
+
+        if re.match(r"^https", url_list[gene]):
+            url = "<a href=" + ''.join(url_list[gene]) + " target=\"_blank\">iCn3D link</a>"
+        else:
+            url = url_list[gene] # text output, no link
+
+        sif = variant_string2(sift[gene])
+        pol = variant_string2(polyphen[gene])
+
+        unid = "NA"
+        if gene_to_pid[gene]:
+            unid = gene_to_pid[gene]
+        html += "<tr><td>" + gene + "</td><td>" + unid + "</td><td>" + sif + "</td><td>" + \
+            pol + "</td><td>" + url + "</td></tr>"
+
+    html += "</table>"
+    html += "</body>"
+    html += "</html>"
+
+    f.write(html)
+    f.close()
+    
+    webbrowser.open('iCn3D_links.html')
 
 def cli():
 
@@ -288,7 +385,6 @@ def get_vcf(vcff):
         line = str(record)
         vcf_line = line.split()
         # only get variants
-        #print(vcf_line)
         if (vcf_line[3] != vcf_line[4]) and (vcf_line[4] != '.'):
             vcf_line[0] = vcf_line[0].replace("chr","")
             vcf.append(vcf_line[0:6])
@@ -296,43 +392,77 @@ def get_vcf(vcff):
     return(vcf)
 
 def main(args):
+    import dill as pickle
+
     # read in the whole VCF file, use client.get_gene_ids to fill genes dictionary: genes[loc]["ens_id"] and genes[loc]["sp_id"]
     # if args.g, select subset of genes
     # go through genes, get coords from vcf, get VEP, generate iCn3D link for each gene
 
-    gene_info = defaultdict(dict)
-    iCn3D_sift = defaultdict(lambda: defaultdict(dict))  # nested dict to hold sift/polyphen scores per variants
-    iCn3D_polyphen = defaultdict(lambda: defaultdict(dict))  # need to be able to access 'gene' if not in dict
+    #gene_info = defaultdict(dict) # used when picking out coordinates of a known gene from VCF
+    sift = defaultdict(lambda: defaultdict(dict))      # nested dict to hold sift/polyphen scores per variants
+    polyphen = defaultdict(lambda: defaultdict(dict))  
 
-    vcf = get_vcf(args.v)
-    client = EnsemblRestClient()
-    gene_ids = client.get_gene_ids(vcf) # extract Ensemble gene and SwissProt ids from the vcf coordinates
+    test = 0 # set = 1 to avoid regenerating everything if just testing html output
+    if test == 0:
+        vcf = get_vcf(args.v)
+        client = EnsemblRestClient()
+        gene_ids = client.get_gene_ids(vcf) # extract Ensemble gene and SwissProt ids from the vcf coordinates
  
-    #client.get_gene_info(gene_id_list, gene_info)    # fills gene info dictionary
-    gene_ids_select = defaultdict(dict) # subset gene_ids if using -g flag
-    if args.g:
-        gene_id_list = [args.g]
-        for l in gene_ids.keys():
-            if gene_ids[l]['ens_id'] in gene_id_list:
-                gene_ids_select[l] = gene_ids[l] 
-    else:
-        gene_id_list = [gene_ids[x]['ens_id'] for x in gene_ids.keys()]
-        gene_ids_select = gene_ids
-    
-    variants = extract_vcf(vcf, gene_ids_select) 
-    vep_output(variants, iCn3D_sift, iCn3D_polyphen) # also want to be able to read in vep results if in VCF file (e.g. from TCGA)
-    
-    # create dict to look up pid from ens_id
-    gene_to_pid = defaultdict(dict)
-    for loc in gene_ids.keys():
-        if not gene_to_pid[gene_ids[loc]['ens_id']]:
-            gene_to_pid[gene_ids[loc]['ens_id']] = gene_ids[loc]['sp_id']
-
-    for gene in gene_id_list:
-        print("=========================\nGetting link for ", gene)
-        if (gene_to_pid[gene]):
-            get_iCn3D_path(iCn3D_sift, iCn3D_polyphen, gene, gene_to_pid[gene])
+        # change from Ensembl gene ID to Uniprot ID?
+        gene_ids_select = defaultdict(dict) # subset gene_ids if using -g flag
+        if args.g:
+            gene_id_list = [args.g]
+            for l in gene_ids.keys():
+                if gene_ids[l]['ens_id'] in gene_id_list:
+                    gene_ids_select[l] = gene_ids[l] 
         else:
-            print("No SwissProt ID!")
+            gene_id_list = [gene_ids[x]['ens_id'] for x in gene_ids.keys()]
+            gene_ids_select = gene_ids
+    
+        #client.get_gene_info(gene_id_list, gene_info)    # fills gene info dictionary
+
+        # get list of variants (as a string) to submit to VEP
+        variants = extract_vcf(vcf, gene_ids_select) 
+        vep_output(variants, sift, polyphen) # also want to be able to read in vep results if in VCF file (e.g. from TCGA)
+    
+        #create dict to look up pid from ens_id
+        gene_to_pid = defaultdict(dict)
+        for loc in gene_ids.keys():
+            if not gene_to_pid[gene_ids[loc]['ens_id']]:
+                gene_to_pid[gene_ids[loc]['ens_id']] = gene_ids[loc]['sp_id']
+                print(gene_ids[loc]['ens_id'], gene_to_pid[gene_ids[loc]['ens_id']])
+
+        #generate an html page with all the iCn3D links
+        url_list = defaultdict(dict)
+        for gene in gene_id_list:
+            print("=========================\nGetting link for ", gene)
+            if (gene_to_pid[gene]):
+                #print("exists")
+                url_list[gene] = get_iCn3D_path(sift, polyphen, gene, gene_to_pid[gene])
+            else:
+                url_list[gene] = "No SwissProt ID for " + gene + "!"
+
+        # save data so we don't have to rerun
+        pfile = open(r'iCn3D_data.pkl', 'wb')
+        pickle.dump(gene_ids_select, pfile)
+        pickle.dump(url_list, pfile)
+        pickle.dump(sift, pfile)
+        pickle.dump(polyphen, pfile)
+        pickle.dump(gene_to_pid, pfile)
+        pfile.close()
+    # end if test 
+
+    else: 
+        #reload object from file
+        file = open(r'iCn3D_data.pkl', 'rb')
+        gene_ids_select = pickle.load(file)
+        url_list = pickle.load(file)
+        sift = pickle.load(file)
+        polyphen = pickle.load(file)
+        gene_to_pid = pickle.load(file)
+        file.close()
+
+    print_html(args.v, url_list, sift, polyphen, gene_to_pid)
+
 if __name__ == '__main__':
     main(cli().parse_args())    
