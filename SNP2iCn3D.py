@@ -8,14 +8,16 @@ shows the variants in the sequence track and highlights the first mutant in the 
 Original script: Shashi Ratnayake, NCI
 Modifications by: Michael Sierk, NCI, Manoj Wagle, University of Grenoble Alpes
 
-TODO (8/8/22):
-    - html output
-        - get variant string
-    - .tsv output for importing into a spreadsheet
+TODO (9/1/22):
     - retrieve PDB if available
+    - .csv output for importing into a spreadsheet
+    - extract SIFT/Polyphen scores from TCGA files
     - load SIFT/PolyPhen scores into iCn3D
         - requires BED file, has to be loaded manually into iCn3D?
-
+    - scap interaction only does 1 mutation at a time
+    - option to include non-deleterious mutations (SIFT/Polyphen score cutoff?)
+    - write out a file with variant, ensembl gene id, uniprot id, aa mutation, pdb id
+    - add other options for prediction, such as open cravat
 '''
 from argparse import ArgumentParser
 from collections import defaultdict
@@ -263,29 +265,27 @@ def get_iCn3D_path(sift, polyphen, gene, pid):
 
     sift_str = variant_string(sift[gene]) # need to modify to produce BED file to show SIFT/Polyphen score
     polyphen_str = variant_string(polyphen[gene])
+    print("sift_str:", sift_str)
+    print("polyphen_str:", polyphen_str)
 
     pdbid_list = get_pdb_id(pid) 
-    print("pdbid_list:\n", pdbid_list)
+    #print("pdbid_list:\n", pdbid_list)
     #{"P07550":[{"end":64,"entity_id":1,"chain_id":"A","pdb_id":"6ps2","start":54,"unp_end":40,"coverage":1.0,"unp_start":30,"resolution":2.4,"experimental_method":"X-ray diffraction","tax_id":9606},
    
     # fill all the locations in struct_id
     struct_id = dict() 
     if (sift_str): 
-        sift_split = sift_str.split(", ") 
+        sift_split = sift_str.split(",") 
         for s in sift_split:
-            print('s:', s)
-            #s = s.strip()
             aanum = s.split()[0]
-            print("aanum: ", aanum)
+            print('sift aanum:', aanum)
             struct_id[aanum] = ''
 
     if (polyphen_str):
-        polyph_split = polyphen_str.split(", ")
+        polyph_split = polyphen_str.split(",")
         for p in polyph_split:
-            print('p:', p)
-            #p = p.strip()
             aanum = p.split()[0]
-            print("aanum: ", aanum, sep='')
+            print('polyphen aanum:', aanum)
             struct_id[aanum] = ''
 
     # determine PDB/AFID(default) for each aanum
@@ -296,57 +296,84 @@ def get_iCn3D_path(sift, polyphen, gene, pid):
             if (pdbid_list != 'None'):
                 for m in pdbid_list:
                     print('m:', m)
-                    #print('start:', m.get('unp_start'), 'end:', m.get('unp_end'))
-            
-    if (pdbid_list != 'None'):
-        for m in pdbid_list:
-            print('m:', m)
-            for j in pdbid_list[m]:
-                #if isinstance(m[id], list):
-                #for j in m[id]:
-                    #if "sift_prediction" in j or "polyphen_prediction" in j:
-                id = j["pdb_id"]
-                chain = j["chain_id"]
-                resolution = j["resolution"]
-                start = j["unp_start"]
-                end = j['unp_end']
-                print('id:', id, 'chain:', chain, 'res:', resolution, 'start:', start, 'end:', end)
-                #print('start:', m.get('unp_start'), 'end:', m.get('unp_end'))
+                    maxres = 10
+                    for j in pdbid_list[m]:
+                        print('pdbid:', j["pdb_id"],'chain:',j['chain_id'],'resolution:',j['resolution'],'start:', j["unp_start"], 'end:', j['unp_end'])
+                        # if n in range of pdb, use pdb id instead of uniprot id
+                        if ((int(n) >= j['unp_start']) & (int(n) <= j['unp_end'])):
+                            if ((j["resolution"] == 'None') & (maxres < 10)): # if have xray structure, don't use nmr
+                                break
+                            # if NMR only, use NMR; if higher resolution, use new pdb_id
+                            elif (((j["resolution"] == 'None') & (maxres == 10)) | (j["resolution"] < maxres)): 
+                                struct_id[n] = j["pdb_id"]
+                                maxres = j["resolution"]
+        print(struct_id)
 
+    # need a separate URL for each PDB/AFID
+    # url_list[gene] = (id1: url1, id2: url2, ...)
+    # have to split the sift & polyphen strings according to struct_id
+    # 
+    struct_ids_unique = set(struct_id.values())
+    struct_ids_list = list(struct_ids_unique)
+    num_urls = len(struct_ids_list)
+    print('num_urls:', num_urls)
+    print(struct_ids_list)
 
-    url_query =  'afid=' + pid + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
-    url_command='view annotations; set annotation cdd; set view detailed view;'    
-
-    if(sift_str):
-        # Note: scap interaction only displays 1st snp in list
-        scap_str = 'scap interaction ' + pid + '_A_' + sift_str.replace(" ", "_")
-        url_command += 'add track | chainid ' + pid + '_A | title SIFT_predict | text ' + sift_str + ";" + scap_str
-    
-    if(polyphen_str):
-        # only need to add scap_str once, need to check if scap_str exists already
-        if scap_str:
-            url_command += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str
+    url_list = []
+    for id in struct_ids_list:
+        if len(id) == 4:
+            id_url = 'pdbid=' + id
         else:
-            scap_str = 'scap interaction ' + pid + '_A_' + polyphen_str.replace(" ", "_")
-            url_command += '; add track | chainid ' + pid + '_A | title PolyPhen_predict | text ' + polyphen_str + ";" + scap_str
-    
-    url_command = quote(url_command) # encode the spaces
-    iCn3Durl = url_path + url_query + url_command
+            id_url = 'afid=' + id
+        url_query =  id_url + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
+        url_command = 'view annotations; set annotation cdd; set view detailed view;  set thickness | stickrad 0.2;'    
 
-    if (sift_str) or (polyphen_str):
+        if(sift_str):
+            sift_str_id = ''
+            sift_split = sift_str.split(",") 
+            for s in sift_split:
+                if (struct_id[s.split()[0]] == id):
+                    if sift_str_id == '':
+                        sift_str_id += s
+                    else:
+                        sift_str_id += "," + s 
+            # Note: scap interaction only displays 1st snp in list
+            # -> need to check on chain
+            scap_str = 'scap interaction ' + id + '_A_' + sift_str_id.replace(" ", "_") # e.g. 3FE4_A_113_Y
+            url_command += 'add track | chainid ' + id + '_A | title SIFT_predict | text ' + sift_str_id + ";" + scap_str
+    
+        if(polyphen_str):
+            poly_str_id = ''
+            poly_split = polyphen_str.split(",") 
+            for p in poly_split:
+                if (struct_id[p.split()[0]] == id):
+                    if poly_str_id == '':
+                        poly_str_id += p
+                    else:
+                        poly_str_id += "," + p 
+            # only need to add scap_str once, need to check if scap_str exists already
+            if scap_str:
+                url_command += '; add track | chainid ' + id + '_A | title PolyPhen_predict | text ' + poly_str_id
+            else:
+                scap_str = 'scap interaction ' + id + '_A_' + poly_str_id.replace(" ", "_")
+                url_command += 'add track | chainid ' + id + '_A | title PolyPhen_predict | text ' + poly_str_id + ";" + scap_str
+    
+        
+        url_command = quote(url_command) # encode the spaces
+        iCn3Durl = url_path + url_query + url_command
+        url_list.append(iCn3Durl) 
         print("Here is your iCn3D link:")
         print(iCn3Durl, "\n")
-        #iCn3Durl = quote(iCn3Durl, safe=)
-    else:
-        iCn3Durl = "No deleterious mutations found for " + pid
     
-    return(iCn3Durl) #, sift_str, polyphen_str)
-    #webbrowser.open(iCn3Durl)
+    if len(url_list) == 0:
+        url_list.append("No deleterious mutations found for " + pid)
+    
+    return(url_list) 
 
 def variant_string(predict):
-    """ extract the variants that are deleterious from sift and polyphen dicts and returns 
-    a combined string per prediction for the iCn3D url command
-    - this includes all the variants from one gene 
+    """ extract the variants that are deleterious from sift or polyphen dict and returns 
+        a combined string per prediction for the iCn3D url command
+        - this includes all the variants from one gene 
     """
     variants = ""
     for mutaa in predict:
@@ -376,7 +403,7 @@ def variant_string2(predict):
         if 'sift_prediction' in predict[mutaa]:
             #print('sift pred:', predict[pos][aa]['sift_prediction'])
             str_add = mutaa + ' ' + predict[mutaa]['sift_prediction'] + \
-                        ' ' + str(predict[mutaa]['sift_score'])
+                        ' ' + str(predict[mutaa]['sift_score']) + "<br>"
             if variants == '':
                 variants += str_add
             else:
@@ -384,7 +411,7 @@ def variant_string2(predict):
         elif 'polyphen_prediction' in predict[mutaa]:
             #print('polyp pred:', predict[pos][aa]['polyphen_prediction'])
             str_add = mutaa + ' ' + predict[mutaa]['polyphen_prediction'] + \
-                    ' ' + str(predict[mutaa]['polyphen_score'])
+                    ' ' + str(predict[mutaa]['polyphen_score']) + "<br>"
             if variants == '':
                 variants += str_add
             else:
@@ -408,13 +435,15 @@ def print_html(vcf_file, url_list, sift, polyphen, gene_to_pid):
     html += "Input file: " + vcf_file
 
     # output table
-    html += "<tr><th>Gene</th><th>UniprotID</th><th>SIFT</th><th>PolyPhen</th><th>iCn3D link</th></tr>"
+    html += "<tr><th>Gene</th><th>UniprotID</th><th>PDB ID</th><th>SIFT</th><th>PolyPhen</th><th>iCn3D link</th></tr>"
+    
     for gene in gene_to_pid.keys():
-
-        if re.match(r"^https", url_list[gene]):
-            url = "<a href=" + ''.join(url_list[gene]) + " target=\"_blank\">iCn3D link</a>"
-        else:
-            url = url_list[gene] # text output, no link
+        url = ''
+        for url1 in url_list[gene]:
+            if re.match(r"^https", url1):
+                url += "<a href=" + ''.join(url1) + " target=\"_blank\">iCn3D link</a><br>"
+            else:
+                url = url1 # text output, no link
 
         sif = variant_string2(sift[gene])
         pol = variant_string2(polyphen[gene])
@@ -422,7 +451,8 @@ def print_html(vcf_file, url_list, sift, polyphen, gene_to_pid):
         unid = "NA"
         if gene_to_pid[gene]:
             unid = gene_to_pid[gene]
-        html += "<tr><td>" + gene + "</td><td>" + unid + "</td><td>" + sif + "</td><td>" + \
+        # gene uniprotID PDBID sift polyphen url
+        html += "<tr><td>" + gene + "</td><td>" + unid + "</td><td>" + "PDBID" + "</td><td>" + sif + "</td><td>" + \
             pol + "</td><td>" + url + "</td></tr>"
 
     html += "</table>"
@@ -492,6 +522,8 @@ def main(args):
                     gene_ids_select[l] = gene_ids[l] 
         else:
             gene_id_list = [gene_ids[x]['ens_id'] for x in gene_ids.keys()]
+            gid_set = set(gene_id_list) # get unique set of gene ids
+            gene_id_list = (list(gid_set))
             gene_ids_select = gene_ids
     
         #client.get_gene_info(gene_id_list, gene_info)    # fills gene info dictionary
