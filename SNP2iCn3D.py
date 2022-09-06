@@ -273,20 +273,19 @@ def get_iCn3D_path(sift, polyphen, gene, pid):
     #{"P07550":[{"end":64,"entity_id":1,"chain_id":"A","pdb_id":"6ps2","start":54,"unp_end":40,"coverage":1.0,"unp_start":30,"resolution":2.4,"experimental_method":"X-ray diffraction","tax_id":9606},
    
     # fill all the locations in struct_id
-    struct_id = dict() 
-    if (sift_str): 
-        sift_split = sift_str.split(",") 
-        for s in sift_split:
+    def split_sift_poly(str, struct_id):
+        split = str.split(",") 
+        for s in split:
             aanum = s.split()[0]
             print('sift aanum:', aanum)
             struct_id[aanum] = ''
 
+    struct_id = dict() 
+    if (sift_str): 
+        split_sift_poly(sift_str, struct_id)
+
     if (polyphen_str):
-        polyph_split = polyphen_str.split(",")
-        for p in polyph_split:
-            aanum = p.split()[0]
-            print('polyphen aanum:', aanum)
-            struct_id[aanum] = ''
+        split_sift_poly(polyphen_str, struct_id)
 
     # determine PDB/AFID(default) for each aanum
     if (struct_id):
@@ -305,7 +304,7 @@ def get_iCn3D_path(sift, polyphen, gene, pid):
                                 break
                             # if NMR only, use NMR; if higher resolution, use new pdb_id
                             elif (((j["resolution"] == 'None') & (maxres == 10)) | (j["resolution"] < maxres)): 
-                                struct_id[n] = j["pdb_id"]
+                                struct_id[n] = j["pdb_id"].upper() + "_" + j["chain_id"]
                                 maxres = j["resolution"]
         print(struct_id)
 
@@ -313,57 +312,78 @@ def get_iCn3D_path(sift, polyphen, gene, pid):
     # url_list[gene] = (id1: url1, id2: url2, ...)
     # have to split the sift & polyphen strings according to struct_id
     # 
-    struct_ids_unique = set(struct_id.values())
+    struct_ids_unique = set(struct_id.values()) # unique set of ids
     struct_ids_list = list(struct_ids_unique)
     num_urls = len(struct_ids_list)
     print('num_urls:', num_urls)
     print(struct_ids_list)
 
     url_list = []
-    for id in struct_ids_list:
-        if len(id) == 4:
-            id_url = 'pdbid=' + id
+    for stid in struct_ids_list:
+        id = ''
+        chainid = ''
+        id_url = ''
+        print('stid:', stid)
+        if re.search(r'_', stid):
+            print('matched _')
+            id = stid.split("_")[0]
+            chainid = stid.split("_")[1]
+            id_url = 'pdbid='
         else:
-            id_url = 'afid=' + id
-        url_query =  id_url + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
-        url_command = 'view annotations; set annotation cdd; set view detailed view;  set thickness | stickrad 0.2;'    
+            id = stid
+            chainid = 'A'
+            id_url = 'afid='
+
+        url_query =  id_url + id + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
+        url_command = 'view annotations; set annotation cdd; set view detailed view;  set thickness | stickrad 0.2'    
+
+        # get sift_str that are in current afid/pdbid
+        scap_str_id = ''
 
         if(sift_str):
             sift_str_id = ''
-            sift_split = sift_str.split(",") 
+            sift_split = sift_str.split(",")
+            print('sift_str:', sift_str) 
             for s in sift_split:
-                if (struct_id[s.split()[0]] == id):
+                if (struct_id[s.split()[0]] == stid):
                     if sift_str_id == '':
                         sift_str_id += s
+                        scap_str_id += id + '_' + chainid + '_' + s.replace(" ", "_") # e.g. 3FE4_A_113_Y
                     else:
                         sift_str_id += "," + s 
-            # Note: scap interaction only displays 1st snp in list
-            # -> need to check on chain
-            scap_str = 'scap interaction ' + id + '_A_' + sift_str_id.replace(" ", "_") # e.g. 3FE4_A_113_Y
-            url_command += 'add track | chainid ' + id + '_A | title SIFT_predict | text ' + sift_str_id + ";" + scap_str
-    
+                        scap_str_id += "," + id + '_' + chainid + '_' + s.replace(" ", "_")
+
+            url_command += '; add track | chainid ' + id + '_' + chainid + ' | title SIFT_predict | text ' + sift_str_id
+            
+        # get polyphen_str that are in current afid/pdbid
         if(polyphen_str):
             poly_str_id = ''
             poly_split = polyphen_str.split(",") 
             for p in poly_split:
-                if (struct_id[p.split()[0]] == id):
+                print('p:', p)
+                if (struct_id[p.split()[0]] == stid):
                     if poly_str_id == '':
                         poly_str_id += p
                     else:
-                        poly_str_id += "," + p 
-            # only need to add scap_str once, need to check if scap_str exists already
-            if scap_str:
-                url_command += '; add track | chainid ' + id + '_A | title PolyPhen_predict | text ' + poly_str_id
-            else:
-                scap_str = 'scap interaction ' + id + '_A_' + poly_str_id.replace(" ", "_")
-                url_command += 'add track | chainid ' + id + '_A | title PolyPhen_predict | text ' + poly_str_id + ";" + scap_str
-    
-        
-        url_command = quote(url_command) # encode the spaces
+                        poly_str_id += "," + p
+                    if scap_str_id:
+                        scap_str_id += "," + id + '_' + chainid + '_' + p.replace(" ", "_")
+                    else:
+                        scap_str_id += id + '_' + chainid + '_' + p.replace(" ", "_") # e.g. 3FE4_A_113_Y
+            print('poly_str_id:', poly_str_id)
+            url_command += '; add track | chainid ' + id + '_' + chainid + ' | title PolyPhen_predict | text ' + poly_str_id
+
+        # Note: scap_str has duplicates if same aa is in SIFT and Polyphen output
+        if scap_str_id:
+            url_command += '; scap interaction ' + scap_str_id
+
         iCn3Durl = url_path + url_query + url_command
-        url_list.append(iCn3Durl) 
         print("Here is your iCn3D link:")
         print(iCn3Durl, "\n")
+        url_command = quote(url_command) # encode the spaces for URL
+        iCn3Durl = url_path + url_query + url_command
+        url_list.append(iCn3Durl) 
+
     
     if len(url_list) == 0:
         url_list.append("No deleterious mutations found for " + pid)
