@@ -1,0 +1,1 @@
+- This directory contains the sample VCF file used for testing the pipeline.

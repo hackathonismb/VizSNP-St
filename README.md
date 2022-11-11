@@ -36,7 +36,8 @@
     * Chromosomal coordinates
 - Mapping: 
     * The input gene ID is also mapped to a UniProt primary accession (UPrimAC) using the UniProtKB/Swiss-Prot database.
-    * This ID is later used to generate an iCn3D link based on the variants.
+    * The UPrimAC is used to retrieve the protein structure.
+    * If a PDB structure is available, then structure with the best resolution is chosen. When a PDB structure is unavailable, an Alphafold structure is retrieved instead.
 
 **2] Extract VCF file variants**
 - Variants that match the input gene are extracted from the VCF file
@@ -46,7 +47,7 @@
 - Currently, we utilize two pathogenicity prediction scores: SIFT and PolyPhen.
 
 **4] Generate the iCn3D path based on variants of interest**
-- Finally, an `iCn3D link` is generated using the UPrimAC retrieved earlier (see step 1), including variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
+- Finally, an `iCn3D link` is generated using the protein structure retrieved earlier (see step 1) with the added variant annotation information (those predicted to be `deleterious` by SIFT and PolyPhen).
 - Automatically open the link in your favorite web browser.
 
 </br>
@@ -55,9 +56,41 @@
 
 ## Results
 
+- For running the pipeline, you need a VCF file (gzipped and tabix) from which the variants are to be extracted. 
+- Here we tested our pipeline on a sample VCF file (available in the `example` directory)
+
+  ```
+  python3 VizSNPSt.py -g ENSG00000141867 -v example.vcf.gz 
+  ```
+
+- The output should look something like this:
+
+  ```
+  UniProt Primary Accession: O60885
+
+  Here is your iCn3D link:
+  https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?afid=O60885&date=20220713&v=3.12.7&command=view annotations; set annotation cdd; set view detailed view;add track | chainid O60885_A | title SIFT_predict | text 517 P;scap interaction O60885_A_517_P
+  ```
+
+- The structure with the SNPs will be opened automatically in iCn3D.
+- The figures and animation below shows the output in iCn3D
+
+</br>
+
+<p align = "center">
+  <img width="1789" alt="Main" src="https://user-images.githubusercontent.com/74168582/180653738-b4bf63d6-a42f-4058-9046-b78e1687919d.png">
+ </p>
+
+</br>
+
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif" width="600" height="450">
+</p>
 
 ## Future prospects:
-
+- Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
+- Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
+- Deal with multiple SNPs, either from a single gene or multiple genes.
 
 ## Dependencies
 - Python version >= 3
@@ -71,6 +104,15 @@
 - Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
 - Deal with multiple SNPs, either from a single gene or multiple genes.
 - Incorporate color ramp highlighting of residues based on SIFT & Polyphen scores
+## Team 
+- [Bonface Onyango](https://github.com/bonfaceonyango)
+- [Manoj M Wagle](https://github.com/manojmw)
+- [Michael Sierk](https://github.com/msierk)
+- [Pranavathiyani G](https://github.com/pranavathiyani)
+
+## Acknowledgment
+- We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
+- We would also like to thank Shashi Ranayake from the Center for Biomedical Informatics and Information Technology, Computational Genomics and Bioinformatics Branch at the National Cancer Institute for drafting the original version of the script. Subsequent improvements and new features were added by Manoj M Wagle and Michael Sierk.
 
 
 ## References
