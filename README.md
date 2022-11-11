@@ -101,10 +101,10 @@
 - Incorporate color ramp highlighting of residues based on SIFT & Polyphen scores
 
 ## Team 
-- [Bonface Onyango](https://github.com/bonfaceonyango)
-- [Manoj M Wagle](https://github.com/manojmw)
-- [Michael Sierk](https://github.com/msierk)
-- [Pranavathiyani G](https://github.com/pranavathiyani)
+- [Bonface Onyango](https://github.com/bonfaceonyango), Pwani University
+- [Manoj M Wagle](https://github.com/manojmw), Université Grenoble Alpes
+- [Michael Sierk](https://github.com/msierk), National Cancer Institute
+- [Pranavathiyani G](https://github.com/pranavathiyani), Pondicherry University
 
 ## Acknowledgment
 - We would like to thank the **International Society for Computational Biology/Intelligent Systems for Molecular Biology (ISCB/ISMB)** and the **National Center for Biotechnology Information (NCBI)** for their support and for providing all the required computational resources during the codeathon.
