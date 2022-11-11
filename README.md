@@ -87,11 +87,6 @@
   <img src="https://user-images.githubusercontent.com/74168582/180654007-9da19c54-5793-4ab9-a3b3-1800e16fd942.gif" width="600" height="450">
 </p>
 
-## Future prospects:
-- Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
-- Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
-- Deal with multiple SNPs, either from a single gene or multiple genes.
-
 ## Dependencies
 - Python version >= 3
 - Required modules:
@@ -99,11 +94,12 @@
 - You can easily install this with conda (Ex: conda install -c bioconda pysam)
 - Most other standard core modules should already be available on your system
 
-## Future Modifications
+## Future prospects
 - Remove requirement for knowing the Ensembl Gene ID (just submit a VCF)
 - Perform more sophisticated filtering on the VCF file. (Right now it just selects deleterious mutations.)
 - Deal with multiple SNPs, either from a single gene or multiple genes.
 - Incorporate color ramp highlighting of residues based on SIFT & Polyphen scores
+
 ## Team 
 - [Bonface Onyango](https://github.com/bonfaceonyango)
 - [Manoj M Wagle](https://github.com/manojmw)
