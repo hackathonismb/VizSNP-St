@@ -6,7 +6,8 @@ Reads in a VCF file, submits variants to VEP server, generates an iCn3D link tha
 shows the variants in the sequence track and highlights the first mutant in the 3D viewer
 
 Original script: Shashi Ratnayake, CGBB, CBIIT, NCI
-Modifications by: Michael Sierk, NCI, Manoj Wagle, University of Grenoble Alpes
+Modifications by: Michael Sierk, NCI 
+                  Manoj M Wagle, Université Grenoble Alpes; Manipal Academy of Higher Education
 
 TODO (12/1/22):
     - load SIFT/PolyPhen scores into iCn3D
@@ -734,5 +735,5 @@ def main(args):
     print("Printing .csv file...")
     print_csv(args, url_list, results)
 
-if __name__ == '__main__':
-    main(cli().parse_args())    
+if __name__ == '__main__':   
+    main(cli().parse_args())   
