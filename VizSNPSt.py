@@ -735,5 +735,5 @@ def main(args):
     print("Printing .csv file...")
     print_csv(args, url_list, results)
 
-if __name__ == '__main__':
-    main(cli().parse_args())    
+if __name__ == '__main__':   
+    main(cli().parse_args())   
