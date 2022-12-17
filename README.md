@@ -102,7 +102,7 @@
 
 ## Team 
 - [Bonface Onyango](https://github.com/bonfaceonyango), Pwani University
-- [Manoj M Wagle](https://github.com/manojmw), Université Grenoble Alpes
+- [Manoj M Wagle](https://github.com/manojmw), Université Grenoble Alpes; Manipal Academy of Higher Education
 - [Michael Sierk](https://github.com/msierk), National Cancer Institute
 - [Pranavathiyani G](https://github.com/pranavathiyani), Pondicherry University
 
