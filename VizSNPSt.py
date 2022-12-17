@@ -5,19 +5,18 @@ SNP2iCn3D.py
 Reads in a VCF file, submits variants to VEP server, generates an iCn3D link that 
 shows the variants in the sequence track and highlights the first mutant in the 3D viewer
 
-Original script: Shashi Ratnayake, NCI
-Modifications by: Michael Sierk, NCI, Manoj Wagle, University of Grenoble Alpes
+Original script: Shashi Ratnayake, CGBB, CBIIT, NCI
+Modifications by: Michael Sierk, NCI 
+                  Manoj M Wagle, Université Grenoble Alpes; Manipal Academy of Higher Education
 
-TODO (9/1/22):
-    - retrieve PDB if available v
-    - write out a file with variant, ensembl gene id, uniprot id, aa mutation, pdb id
-    - extract SIFT/Polyphen scores from TCGA files v
+TODO (12/1/22):
     - load SIFT/PolyPhen scores into iCn3D
         - requires BED file, has to be loaded manually into iCn3D?
-    - option to include non-deleterious mutations (SIFT/Polyphen score cutoff?)
+    - option to include SIFT/Polyphen score cutoff
     - add other options for prediction, such as open cravat
 '''
-from argparse import ArgumentParser
+from argparse import ArgumentParser, HelpFormatter
+import textwrap
 from collections import defaultdict
 import sys
 import re
@@ -26,7 +25,6 @@ import requests
 import json
 import time
 from datetime import datetime
-import webbrowser
 from urllib.parse import quote, urlencode
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError
@@ -34,83 +32,6 @@ import pandas as pd
 from math import nan
 
 
-class EnsemblRestClient(object):
-    # from https://github.com/Ensembl/ensembl-rest/wiki/Example-Python-Client
-    def __init__(self, server='http://rest.ensembl.org', reqs_per_sec=15):
-        self.server = server
-        self.reqs_per_sec = reqs_per_sec
-        self.req_count = 0
-        self.last_req = 0
-
-    def perform_rest_action(self, endpoint, hdrs=None, params=None):
-        if hdrs is None:
-            hdrs = {}
-
-        if 'Content-Type' not in hdrs:
-            hdrs['Content-Type'] = 'application/json'
-
-        if params:
-            endpoint += '?' + urlencode(params)
-
-        data = None
-
-        # check if we need to rate limit ourselves
-        if self.req_count >= self.reqs_per_sec:
-            delta = time.time() - self.last_req
-            if delta < 1:
-                time.sleep(1 - delta)
-            self.last_req = time.time()
-            self.req_count = 0
-        
-        try:
-            request = Request(self.server + endpoint, headers=hdrs)
-            response = urlopen(request)
-            content = response.read()
-            if content:
-                data = json.loads(content)
-            self.req_count += 1
-
-        except HTTPError as e:
-            # check if we are being rate limited by the server
-            if e.code == 429:
-                if 'Retry-After' in e.headers:
-                    retry = e.headers['Retry-After']
-                    time.sleep(float(retry))
-                    self.perform_rest_action(endpoint, hdrs, params)
-            else:
-                sys.stderr.write('Request failed for {0}: Status code: {1.code} Reason: {1.reason}\n'.format(endpoint, e))
-           
-        return data
-
-    def get_gene_ids(self, coords, gene_list):
-        ''' get the Ensembl gene ID for each coordinate location from the VCF file'''
-        gene_ids = defaultdict(dict)
-        print("Getting Ensembl gene IDs and SwissProt IDs...")
-        for c in coords:
-            loc = " ".join(c) # [0]+":"+c[1]
-            #print("loc:", loc)
-            #ext = "/overlap/region/human/7:140424943-140624564?feature=gene"
-            ext = "/overlap/region/human/" + c[0] + ":" + c[1] + "-" + c[1]
-            gene = self.perform_rest_action(
-                endpoint=ext, 
-                params={'feature': 'gene'}
-            )
-            if gene:
-                #print(gene)
-                for g in gene:
-                    if gene_list:
-                        if g["gene_id"] in [gene_list]:
-                            gene_ids[loc]["EnsID"] = g["gene_id"]
-                            # get the Uniprot ID here 
-                            gene_ids[loc]["SPID"] = get_protein_id(g["gene_id"])
-                            #print(genes_list[loc]["sp_id"], "\n")
-                    else:
-                        gene_ids[loc]["EnsID"] = g["gene_id"]
-                        gene_ids[loc]["SPID"] = get_protein_id(g["gene_id"], 1) # rest = 0/1
-
-            else:
-                print("no gene found for " + loc)
-        return gene_ids
     
 def get_protein_id(gene, rest):
     """ get Uniprot ID using Ensembl gene ID
@@ -119,7 +40,7 @@ def get_protein_id(gene, rest):
     #print("getting Uniprot ID for", gene)
     SwissProt_ID = None
 
-    # use REST API (slower, sometimes is down)
+    # use REST API (default; slower, sometimes is down)
     if rest:
         URL = 'https://rest.uniprot.org/idmapping'
 
@@ -173,14 +94,13 @@ def get_protein_id(gene, rest):
 
     return SwissProt_ID
 
-def vep_output(variants):
-    #from difflib import SequenceMatcher
+def vep_output(variants, args):
     """ Run VEP with the identified variants and capture sift and polyphen scores"""
-    #client = EnsemblRestClient()
-    print("\nRetrieving VEP results...\n")
     
+    species = args.s
+    print("species:", species)
     server = "https://rest.ensembl.org"
-    ext = "/vep/homo_sapiens/region?uniprot=1"
+    ext = "/vep/" + species + "/region?uniprot=1"
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
 
     # combine all variants in a string to submit to VEP
@@ -188,7 +108,6 @@ def vep_output(variants):
     #print(vcf_lines)
 
     r = requests.post(server + ext, headers=headers, data=vcf_lines) 
-    #r = requests.post(server + ext, headers=headers, data='{"variants" : ["1 930963 . G A . . .", "1 3625748 rs200029021 T G . . .", "1 8951432 rs201002216 C G . . .","1 11858106 rs115986244 C T . . .","1 12725716 rs774509385 T C . . .","1 12859409 rs200583219 C T . . .","1 34905012 . C A . . .","1 56744276 . A C . . .","1 85090058 . C A . . ." ,"1 102996069 rs764459522 C T . . ."]}')
     if not r.ok:
         r.raise_for_status()
         sys.exit()
@@ -251,7 +170,6 @@ def vep_output(variants):
                 for j in i[key]:
                     # get all predictions, not just deleterious
                     if "sift_prediction" in j or "polyphen_prediction" in j:
-                        #print("j:", j)
                         gene_id = j.get("gene_id")
 
                         if "swissprot" in j:
@@ -286,16 +204,21 @@ def vep_output(variants):
 
                             break # just take the first hit (avoid isoforms)
     results.set_index('variant', inplace=True)
-    #print("vep_output data:")
-    #print("final results:\n", results)
+
     return(results)
 
 def get_pdb_id(results):
-    print("Getting PDB IDs...\n")
-
+    '''
+    Retrieve the list of PDB IDs for each Uniprot ID
+    For each amino acid position:
+        1. identify if there is an x-ray or EM structure
+        2. if so, get the PDB ID for the highest resolution structure
+        3. if not, get the PDB ID of any NMR structures available
+    '''
     spid_list = list(set(results.SPID)) # unique set of SwissProt ids
 
     for spid in spid_list:
+        print("spid:", spid)
         url = "https://www.ebi.ac.uk/pdbe/graph-api/mappings/best_structures/" + spid 
         r = requests.get(url)
         #print(r.json())
@@ -317,19 +240,27 @@ def get_pdb_id(results):
                         #print('pdbid:', j['pdb_id'],'chain:',j['chain_id'],'resolution:',j['resolution'],'start:', j["unp_start"], 'end:', j['unp_end'])
                         # if n in range of pdb, use pdb id instead of uniprot id
                         if ((int(aanum) >= j['unp_start']) & (int(aanum) <= j['unp_end'])):
-                            if ((j["resolution"] == 'None') & (maxres < 10)): # if have xray structure, don't use nmr
+                            #print(type(j['resolution']),' resolution:',j['resolution'],"|",sep='',)
+                            if j["resolution"] is None:
+                                res = 0
+                            else:
+                                res = j["resolution"]
+                            #print("res:", res, "maxres:", maxres)
+                            if (res == 0) & (maxres < 10):
+                                # NMR, but already have xray
                                 break
-                            # if NMR only, use NMR; if higher resolution, use new pdb_id
-                            elif (((j["resolution"] == 'None') & (maxres == 10)) | (j["resolution"] < maxres)): 
+                            elif ((res == 0) & (maxres == 10) | (0 < res < maxres)):
+                                # either NMR, no xray, or xray with better resolution
+                                # note: replaces existing PDBID if NMR only
                                 pdbid = j["pdb_id"].upper() + "_" + j["chain_id"]
                                 results.loc[(results['SPID']==spid) & (results['mutaa']==aa),'PDBID'] = pdbid
-                                maxres = j["resolution"]
+                                if res > 0:
+                                    maxres = res # if xray, reset maxres
 
 def variant_string(mut_list):
-    """ extract the variants that are deleterious from sift or polyphen dict and returns 
-        a combined string per prediction for the iCn3D url command
-        - this includes all the variants from one gene 
-    """
+    ''' 
+    create a string that includes all the variants from one PDB ID or Uniprot ID for iCn3D
+    '''
     variant_str = ""
     for mutaa in mut_list:
         s = re.split(r'(\d+)', mutaa) # need the number and new aa
@@ -341,23 +272,17 @@ def variant_string(mut_list):
     return variant_str
 
 def get_iCn3D_path(gene_res):
-    """ generates the iCn3D path based on the variants"""
-    # TODO: need to modify to produce BED file to show SIFT/Polyphen score
-    # need a separate URL for each PDB/AFID
-
     '''
-                                        EnsID    SPID   PDBID  mutaa       SIpred SIscore             PPpred PPscore
-    variant
-    1 3625748 rs200029021 T G .   ENSG00000158109  Q5T0D9          V110G  deleterious       0  probably_damaging   0.982
-     '''
+    generates the iCn3D path(s) based on the variants for a given gene
+    TODO: need to modify to produce BED file to show SIFT/Polyphen score
+    need a separate URL for each PDB/AFID
+    '''
     
     date = datetime.now()
     url_path='https://www.ncbi.nlm.nih.gov/Structure/icn3d/full.html?'
 
     url_list = dict()
 
-    spid_list = gene_res.SPID.unique().tolist()
-    #print("spid_list:", spid_list)
     spid = gene_res.SPID.unique().tolist()[0] # should be only 1 swissprotID per gene
     print("SwissProt ID:", spid)
     sift_str = ''
@@ -377,25 +302,23 @@ def get_iCn3D_path(gene_res):
         print("Getting alphafold url...")
         for row in gene_res.itertuples():
             mutaa = row.mutaa
-            pdbid = row.PDBID
             sift = 0
-            if pdbid == '':
-                if (row.SIpred == 'deleterious'):
-                    s = re.split(r'(\d+)', mutaa) # need the number and new aa
-                    sift_str += ',' +  s[1] + ' ' + s[2]
-                    scap_str += ',' + spid + '_A' + '_' + s[1] + "_" + s[2] # e.g. P16860_A_113_Y
-                    sift = 1
-                if (row.PPpred == 'probably_damaging'):
-                    p = re.split(r'(\d+)', mutaa) 
-                    poly_str += ',' +  p[1] + ' ' + p[2]
-                    if sift == 0: # avoid repeating scap
-                        scap_str += ',' + spid + '_A' + '_' + p[1] + "_" + p[2]
-        # check if any deleterious mutations
+            # check if any deleterious mutations
+            if (row.SIpred == 'deleterious'):
+                s = re.split(r'(\d+)', mutaa) # need the number and new aa
+                sift_str += ',' +  s[1] + ' ' + s[2]
+                scap_str += ',' + spid + '_A' + '_' + s[1] + "_" + s[2] # e.g. P16860_A_113_Y
+                sift = 1
+            if (row.PPpred == 'probably_damaging'):
+                p = re.split(r'(\d+)', mutaa) 
+                poly_str += ',' +  p[1] + ' ' + p[2]
+                if sift == 0: # avoid repeating scap
+                    scap_str += ',' + spid + '_A' + '_' + p[1] + "_" + p[2]
+
         if scap_str != '': 
             sift_str = sift_str.lstrip(',')
             poly_str = poly_str.lstrip(',')
             scap_str = scap_str.lstrip(',')
-            #print('scap_str:', scap_str)
             
             url_query =  'afid=' + spid + '&date=' + date.strftime("%Y%m%d") + '&v=3.12.7&command='
             url_command = 'view annotations; set annotation cdd; set view detailed view;  set thickness | stickrad 0.2'    
@@ -404,31 +327,29 @@ def get_iCn3D_path(gene_res):
             url_command += '; scap interaction ' + scap_str
 
             iCn3Durl = url_path + url_query + url_command
-            #print("Here is your iCn3D link:")
-            #print(iCn3Durl, "\n")
+
             url_command = quote(url_command) # encode the spaces for URL
             iCn3Durl = url_path + url_query + url_command
             url_list[spid] = iCn3Durl
 
     # go through the PDB IDs
     print('getting PDB urls...')
-    #print("list:", gene_res.PDBID.unique().tolist())
     for structid in gene_res.PDBID.unique().tolist():
         if structid == '':
             continue
-        print('structid:', structid)
+        #print('structid:', structid)
         sift_str = ''
         poly_str = ''
         scap_str = ''
         url_query = ''
         url_command = ''
         iCn3Durl = ''
+
         # have to check for offset between Uniprot -> PDB residue number mapping
         pdb = structid.split("_")[0]
         chainid = structid.split("_")[1]
         url = "https://www.ebi.ac.uk/pdbe/api/mappings/uniprot_segments/" + pdb
         r = requests.get(url)
-        #print(r.json())
         if r.status_code == 200:
             uniprot_map = r.json()
         else:
@@ -437,7 +358,6 @@ def get_iCn3D_path(gene_res):
         for id in uniprot_map:
             if id.upper() == pdb:
                 mappings = uniprot_map[id]["UniProt"][spid]["mappings"]
-                #print("mappings: ", mappings)
                 if mappings[0]['chain_id'] == chainid:
                     pdb_start_num = mappings[0]['start']['author_residue_number']
                     uniprot_start_num = mappings[0]['unp_start']
@@ -455,6 +375,7 @@ def get_iCn3D_path(gene_res):
             pdbid = row.PDBID
             sift = 0
             if pdbid == structid:
+                # check if any deleterious mutations
                 if (row.SIpred == 'deleterious'):
                     sift_str += ',' +  s[1] + ' ' + s[2]
                     scap_str += ',' + structid + '_' + str(pdb_mutaa_num) + "_" + s[2] # e.g. 1HLZ_A_113_Y
@@ -463,9 +384,8 @@ def get_iCn3D_path(gene_res):
                     poly_str += ',' +  s[1] + ' ' + s[2]
                     if sift == 0: # avoid repeating scap
                         scap_str += ',' + structid + '_' + str(pdb_mutaa_num) + "_" + p[2]
-        # check if any deleterious mutations
+
         if scap_str != '':
-            #print("scap_str:", scap_str)
             sift_str = sift_str.lstrip(',')
             poly_str = poly_str.lstrip(',')
             scap_str = scap_str.lstrip(',')
@@ -476,8 +396,6 @@ def get_iCn3D_path(gene_res):
             url_command += '; scap interaction ' + scap_str
 
             iCn3Durl = url_path + url_query + url_command
-            #print("Here is your iCn3D link:")
-            #print(iCn3Durl, "\n")
             url_command = quote(url_command) # encode the spaces for URL
             iCn3Durl = url_path + url_query + url_command
             url_list[structid] = iCn3Durl 
@@ -486,10 +404,12 @@ def get_iCn3D_path(gene_res):
     
     return(url_list) 
 
-def print_html(vcf_file, url_list, results):
-
-    # to open/create a new html file in the write mode
-    f = open('iCn3D_links.html', 'w')
+def print_html(args, url_list, results):
+    '''
+    Write out the results dataframe to an HTML file with iCn3D links
+    '''
+    fout = args.v + "_output.html"
+    f = open(fout, 'w')
   
     # html code 
     html = """<html>
@@ -515,13 +435,19 @@ def print_html(vcf_file, url_list, results):
     <h2>Click on a link to open the deleterious variants in iCn3D</h2>
      <table border='1'>"""
     
-    html += "Input file: " + vcf_file
+    html += "Input file: " + args.v + "<br>"
+    if args.t:
+        html += "SIFT & PolyPhen scores taken from TCGA VCF file.<br>"
 
     # output table
-    html += "<tr><th>Variant</th><th>Gene</th><th>UniprotID</th><th>PDB ID</th><th>mutaa</th><th>SIFT</th><th>PolyPhen</th><th>iCn3D link</th></tr>"
+    html += "<tr><th>#</th><th>Variant</th><th>Gene</th><th>UniprotID</th><th>PDB ID</th><th>mutaa</th><th>SIFT</th><th>PolyPhen</th><th>iCn3D link</th></tr>"
+    n = 0
     for row in results.itertuples():
-        #print("EnsID:", row.EnsID, "SPID:", row.SPID, "PDBID:", row.PDBID)
-        #print(url_list[row.EnsID])
+       # limit output to 1000 rows
+        n += 1
+        if n > 1000:
+            print("HTML output limited to 1000 rows...")
+            break
         url = ''
         if row.PDBID == '':
             url1 = url_list[row.EnsID][row.SPID]
@@ -530,11 +456,11 @@ def print_html(vcf_file, url_list, results):
 
         # URL is repeated for same PDB/Alphafold ID
         if re.match(r"^https", url1):
-            url += "<a href=" + ''.join(url1) + " target=\"_blank\">iCn3D link</a><br>"
+            url = "<a href=" + ''.join(url1) + " target=\"_blank\">iCn3D link</a><br>"
         else:
             url = url1 # text output, no link
 
-        html += "<tr><td>" + str(row.Index) + "</td><td>" + row.EnsID + "</td><td>" + row.SPID + "</td><td>" \
+        html += "<tr><td>" + str(n) + "</td><td>" + str(row.Index) + "</td><td>" + row.EnsID + "</td><td>" + row.SPID + "</td><td>" \
             + row.PDBID + "</td><td>" + row.mutaa + "</td><td>" \
             + row.SIpred + " " + str(row.SIscore) + "</td><td>" \
             + row.PPpred + " " + str(row.PPscore) + "</td><td>" + url + "</td></tr>"
@@ -546,58 +472,70 @@ def print_html(vcf_file, url_list, results):
     f.write(html)
     f.close()
     
-    #webbrowser.open('iCn3D_links.html')
+def print_csv(args, url_list, results):
+    '''
+    print the results dataframe in a .csv file
+    '''
+    fout = args.v + "_results.csv"
+    for index,row in results.iterrows():
 
-def print_csv(vcf_file, url_list, results):
-    print("Printing .csv file...")
-    fout = vcf_file + "_results.csv"
-    # "=HYPERLINK(""http://www.Google.com"",""Google"")"
-    for row in results.itertuples():
-        #print("EnsID:", row.EnsID, "SPID:", row.SPID, "PDBID:", row.PDBID)
-        #print(url_list[row.EnsID])
         url = ''
         if row.PDBID == '':
             url1 = url_list[row.EnsID][row.SPID]
         else:
             url1 = url_list[row.EnsID][row.PDBID]
-    # Input VCF file: <vcf_file> # could name <vcf_file>_out.csv?
-    # Coord EnsGene SPid PDBID mutaa SIFT Polyphen iCn3Dlink
+        
+        # URL is repeated for same PDB/Alphafold ID
+        if re.match(r"^https", url1):
+            url = '=HYPERLINK("' + url1 + '","iCn3D link")'
+        else:
+            url = url1 # text output, no link
+        results.loc[index, 'Link'] = url
+    
+    results.to_csv(fout)
 
 def get_vcf(vcff):
-    # read in the VCF file
+    '''
+    read in the VCF file & extract variants
+    '''
     vcf = []
     vcf_reader = VariantFile(vcff)
-
+    n = 0
     for record in vcf_reader.fetch():
+        n += 1
         line = str(record)
         vcf_line = line.split()
         # only get variants
         if (vcf_line[3] != vcf_line[4]) and (vcf_line[4] != '.'):
             vcf_line[0] = vcf_line[0].replace("chr","") # can't have chr in VEP REST API submission
             vcf.append(vcf_line[0:6])
-            #print("vcf_line:", vcf_line[0:6])
+
+            # can make limit a command-line argument
+            if len(vcf) == 1000:
+                print("Stopping after 1000 variants...(out of",n,"vcf lines)")
+                break
 
     return(vcf)
 
 def get_vcf_tcga(vcff):
-    ''' Get Ensembl ID, SwissProt ID, SIFT, Polyphen predictions & scores directly from TCGA VCF file'''
-    # need: gene_ids, sift & polyphen dicts, gene_to_pid(?)
+    ''' 
+    Get Ensembl ID, SwissProt ID, SIFT, Polyphen predictions & scores directly from TCGA VCF file
+    Note: not recommended, there are lots of discrepancies between TCGA values & VEP/Ensembl REST values
+    '''
 
     # read in the VCF file
     vcf = []
     vcf_reader = VariantFile(vcff)
-    gene_ids = defaultdict(dict)
 
-    # loc = c[0]+":"+c[1]
-    # genes_list[loc]["ens_id"] = g["gene_id"]
-    # genes_list[loc]["sp_id"] = get_protein_id(g["gene_id"])
     colnames = ["variant", "EnsID", "SPID", "PDBID", "mutaa", "SIpred", "SIscore", "PPpred", "PPscore"]
     results = pd.DataFrame(columns=colnames)
 
     for record in vcf_reader.fetch():
-        #print(record.contig, record.pos, record.ref, record.info["CSQ"]) #
         line = str(record)
         vcf_line = line.split()
+        variant, mutaa, spid = '', '', ''
+        c,d,e,sift_split,polyph_split = (), (), (), (), ()
+        
         # only get variants
         if (vcf_line[3] != vcf_line[4]) and (vcf_line[4] != '.'):
             vcf_line[0] = vcf_line[0].replace("chr","") 
@@ -615,19 +553,23 @@ def get_vcf_tcga(vcff):
             for d in c: 
                 e = d.split("|")
                 if e[1] == "missense_variant":
-                    #results[variant]["EnsID"] = e[4]
-                    #results[variant]["SPID"] = e[31] # double-check with get_protein_id
-                    print("gene id:", e[4], "swissprot:", e[31])
-                    if e[31] == '':
+                    #print("gene id:", e[4], "swissprot:", e[31]) # lots of Trembl IDs, need Swissprot to get PDB IDs
+                    if e[31] == '': # lot of these are missing in TCGA files
                         spid = get_protein_id(e[4], 1)
                         print("getting spid from REST API:", spid)
                     else:
                         spid = e[31]
 
                     mutaa = e[15].split("/")[0] + e[14].split("/")[0] + e[15].split("/")[1]
-                    sift_split = re.split(r'(\w+)\(([0-9]+\.?\d*)\)', e[35])                     
-                    polyph_split = re.split(r'(\w+)\(([0-9]+\.?\d*)\)', e[36])
-                    
+
+                    sift_split = ['','',0,'']
+                    if e[35] != '':
+                        sift_split = re.split(r'(\w+)\(([0-9]+\.?\d*)\)', e[35])
+
+                    polyph_split = ['','',0,''] 
+                    if e[36] != '':
+                        polyph_split = re.split(r'(\w+)\(([0-9]+\.?\d*)\)', e[36])
+
                     row = pd.Series({'variant': variant,
                                     'EnsID': e[4],
                                     'SPID': spid,
@@ -639,24 +581,44 @@ def get_vcf_tcga(vcff):
                                     'PPscore': float(polyph_split[2])})
                     results = pd.concat([results, row.to_frame().T])
 
+            if len(vcf) == 1000:
+                print("Stopping after 1000 variants...")
+                break
+
     results.set_index('variant', inplace=True)
 
     return(vcf, results)
 
 def cli():
 
-    desc = ("PredVEP2iCn3D.py: Runs VEP on certain gene variants extracted from a VCF file \
-             and generates iCn3D links for predicted deleterious mutations.  \
-             Two modes: \
-                1) provide specific Ensembl genes with the -g flag, \
-                only locations matching those genes will be extracted; \
-                2) do not provide the -g flag, all variants \
-                in the VCF will be run through VEP.")
-    parser = ArgumentParser(description=desc)
+    # format the description
+    class RawFormatter(HelpFormatter):
+        def _fill_text(self, text, width, indent):
+            return "\n".join([textwrap.fill(line, width) for line in textwrap.indent(textwrap.dedent(text), indent).splitlines()])
+
+    desc = f'''
+            SNP2iCn3D.py: Runs VEP on single-nucleotide variants extracted from a VCF file 
+            and generates iCn3D links for predicted deleterious mutations.  
+            If the VCF file is from TCGA, the -t flag extracts the VEP data from the VCF file instead of 
+            submitting to the VEP server.
+
+            Two modes: 
+                1) provide a comma-separated list of specific Ensembl genes with the -g flag, 
+                   only locations matching those genes will be extracted; 
+                2) do not provide the -g flag, all variants 
+                   in the VCF will be run through VEP. 
+                    
+            Output:    
+                - an html file listing the variants, SIFT & PolyPhen scores, and iCn3D links
+                - a .csv file that can be imported into Numbers or Google Sheets (URLs are broken in Excel)
+            '''
+    parser = ArgumentParser(description=desc, formatter_class=RawFormatter)
     parser.add_argument('-g', metavar='GENE', help="Select only variants from Ensembl Gene IDs of interest")
-    parser.add_argument('-v', metavar='VCF', help="VCF file to extract the variants; must be compressed with bgzip \
+    parser.add_argument('-v', required=True, metavar='VCF', help="VCF file to extract the variants; must be compressed with bgzip \
         and the tabix .tbi index file must be present.")
     parser.add_argument('-t', action='store_true', help="Extract SIFT & PolyPhen scores from VCF file from TCGA instead of submitting to VEP")
+                        #action='store_true' means default is false 
+    parser.add_argument('-s', type=str, default='human', help="species (default human) (use a common name from http://rest.ensembl.org/info/species.json)")
     return parser
 
 def main(args):
@@ -672,8 +634,6 @@ def main(args):
      -go through genes, get VEP results 
         -if args.t, get EnsID, SwissProtID, SIFT, Polyphen results from TCGA VCF file (SwissProt ID may not be current -> replace with get_protein_id)
      -generate iCn3D link for each gene
-     -create html, csv output
-     TODO: put in a cli arg for html vs. .csv output
     
      Data structures
       vcf: list of single nucleotide variants pulled from VCF file "19 15256965 . T G . . ."
@@ -713,54 +673,67 @@ def main(args):
      Coord EnsGene SPid PDBID mutaa SIFT Polyphen iCn3Dlink
     '''
 
-    results = []
+    colnames = ["variant", "EnsID", "SPID", "PDBID", "mutaa", "SIpred", "SIscore", "PPpred", "PPscore"]
+    results = pd.DataFrame(columns=colnames)
 
     # Extract SIFT & PolyPhen scores from TCGA file
     if args.t:
+        print("Getting VEP values from TCGA file...")
         vcf, results = get_vcf_tcga(args.v) # returns vcf, gene_ids dict, fills sift & polyphen
         get_pdb_id(results) 
 
-        #gene_id_list = [gene_ids[x]['EnsID'] for x in gene_ids.keys()]
-
-    # Get variants from VCF file, SIFT & PolyPhen from VEP REST API
+    # Get variants from VCF file, SIFT & PolyPhen from VEP REST API (default)
     else:    
-        test = 0 # set = 1 to avoid regenerating everything if just testing html output
-        if test == 0:
-            # extract the variants from the vcf file
-            vcf = get_vcf(args.v)
-            # combine all variants in a string to submit to VEP
-            variants = ""
-            for c in vcf:
-                loc = " ".join(c) # [0]+":"+c[1]
+        # extract the variants from the vcf file
+        vcf = get_vcf(args.v)
+
+        # need to break into chunks of 200 variants - maximum POST size is 200
+        def divide_variants_list(list, n):
+            for i in range(0, len(list), n):
+                yield list[i:i + n]
+
+        variant_list = list(divide_variants_list(vcf, 200)) # returns a list of lists
+
+        # combine all variants in a string to submit to VEP
+        print("\nSubmitting variants to VEP server (batch = 200 variants)...")
+        n = 0
+        for v in variant_list:
+            n += 1
+            print("processing batch", n)
+            variants = ''
+            for c in v:
+                loc = " ".join(c) 
                 variants += "\"" + loc + "\" ," 
             variants = variants[:-1]
-            results = vep_output(variants)
-            # find if mutations are in PDB structures or not
-            get_pdb_id(results) 
-            #print("results:\n", results)
-            results.to_csv("results.csv")
+            vep_result = vep_output(variants, args)
+            results = pd.concat([results, vep_result])
+            time.sleep(2)
+        print("Done")
+            
+        # find if mutations are in PDB structures or not
+        print("\nGetting PDB IDs...", end='')
+        get_pdb_id(results)
+        print("Done") 
 
-        else: # if test
-            results = pd.read_csv("results.csv", index_col=0)
-            results.fillna('', inplace=True)
-            results = results.astype('string')
     # end if args.t
 
     print("\nGenerating iCn3D URLs...")
     url_list = defaultdict(dict)
     gene_id_list = list(set(results.EnsID)) # unique set of gene ids
+
     for gene in gene_id_list:
         print("=========================\nGetting link for ", gene)
 
         gene_res = results[results['EnsID'] == gene]
         url_list[gene] = get_iCn3D_path(gene_res)
 
+    # generate an html page with results dataframe, iCn3D links
+    print("\nPrinting html file...")
+    print_html(args, url_list, results)
 
-    #generate an html page with all the iCn3D links
-    print_html(args.v, url_list, results)
-
-    #generate a .csv file with all relevant info
-    print_csv(args.v, url_list, results)
+    # generate a .csv file with results dataframe, iCn3D links
+    print("Printing .csv file...")
+    print_csv(args, url_list, results)
 
 if __name__ == '__main__':
     main(cli().parse_args())    
