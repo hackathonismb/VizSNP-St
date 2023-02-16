@@ -1,0 +1,10 @@
+# manojmw
+# 16 Feb 2023
+
+#############################
+
+# Required dependencies 
+
+pandas
+requests
+pysam
