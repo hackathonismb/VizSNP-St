@@ -90,8 +90,10 @@
 ## Dependencies
 - Python version >= 3
 - Required modules:
+  * pandas
+  * requests
   * pysam
-- You can easily install this with conda (Ex: conda install -c bioconda pysam)
+- You can easily install this with pip (Ex: pip install pandas)
 - Most other standard core modules should already be available on your system
 
 ## Future prospects
