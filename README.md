@@ -97,7 +97,7 @@
 - Alternatively, you can run the following command in your terminal to install the above dependencies in your Python environment:
 
   ```
-  pip install -r requirements.txt
+  pip3 install -r requirements.txt
   ```
 
 - Most other standard core modules should already be available on your system
