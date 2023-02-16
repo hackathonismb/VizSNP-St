@@ -93,7 +93,13 @@
   * pandas
   * requests
   * pysam
-- You can easily install this with pip (Ex: pip install pandas)
+- You can easily install these with pip (Ex: pip install pandas)
+- Alternatively, you can run the following command in your terminal to install the above dependencies in your Python environment:
+
+  ```
+  pip install -r requirements.txt
+  ```
+
 - Most other standard core modules should already be available on your system
 
 ## Future prospects
