@@ -1,6 +1,6 @@
 
-"Please note that this GitHub repository is no longer being updated. We have migrated it to the following link - https://github.com/CBIIT-CGBB/3DVizSNP"
-
+"NOTE: This GitHub repository is no longer being updated. We have migrated it to the following link - https://github.com/CBIIT-CGBB/3DVizSNP"
+</br>
 
 ***
 
